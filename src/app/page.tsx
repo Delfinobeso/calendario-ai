@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useCalendar,
@@ -30,7 +30,7 @@ const ZOOM_LABELS: Record<ZoomLevel, string> = {
 };
 
 export default function Home() {
-  const { events, addEvent, removeEvent } = useCalendar();
+  const { events, addEvent, removeEvent, loadEvents } = useCalendar();
   const {
     aiInput, aiLoading, aiResult,
     setAiInput, setAiLoading, setAiResult,
@@ -95,6 +95,9 @@ export default function Home() {
   const jumpToToday = useCallback(() => { setSwipeDir(0); setFocusDate(new Date()); setZoom("week"); }, []);
 
   const pinch = usePinchZoom(zoomOut, 0.6);
+
+  // Load events from API on mount
+  useEffect(() => { loadEvents(); }, []);
 
   // ─── Header label ───
   const headerLabel = useMemo(() => {
