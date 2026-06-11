@@ -19,6 +19,10 @@ const MONTHS_IT = [
   "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
   "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
 ];
+const MONTHS_SHORT = [
+  "Gen", "Feb", "Mar", "Apr", "Mag", "Giu",
+  "Lug", "Ago", "Set", "Ott", "Nov", "Dic",
+];
 
 function getColor(index: number): string {
   const colors = ["#c9a820", "#e04080", "#20c0a0", "#6c5ce7", "#e17055"];
@@ -65,7 +69,6 @@ function WeekPanel({
                   : ""
               }`}
             >
-              {/* Day number */}
               <div className="flex justify-center pt-1 pb-0.5">
                 <span
                   className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold transition-all ${
@@ -77,8 +80,6 @@ function WeekPanel({
                   {dayNum}
                 </span>
               </div>
-
-              {/* Events */}
               <div className="flex-1 flex flex-col gap-1 min-h-0 overflow-hidden">
                 {dayEvents.slice(0, 4).map((ev, ei) => (
                   <motion.div
@@ -114,6 +115,104 @@ function WeekPanel({
   );
 }
 
+// ─── Month Picker Sheet ───────────────────────────────────────
+function MonthPicker({
+  open,
+  onClose,
+  onSelect,
+  currentMonth,
+  currentYear,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSelect: (year: number, month: number) => void;
+  currentMonth: number;
+  currentYear: number;
+}) {
+  const [year, setYear] = useState(currentYear);
+  const today = new Date();
+  const nowMonth = today.getMonth();
+  const nowYear = today.getFullYear();
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 sheet-blur z-40"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-3xl px-5 pt-6 pb-safe border-t border-[var(--color-surface-tertiary)]/50"
+          >
+            <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/30 rounded-full mx-auto mb-6" />
+            <h2 className="text-xl font-bold mb-4">Seleziona mese</h2>
+
+            {/* Year row */}
+            <div className="flex items-center justify-between mb-5">
+              <button
+                onClick={() => setYear((y) => y - 1)}
+                className="w-10 h-10 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] active:scale-90 transition-transform text-lg"
+              >
+                ‹
+              </button>
+              <span className="text-lg font-bold text-[var(--color-text-primary)]">
+                {year}
+              </span>
+              <button
+                onClick={() => setYear((y) => y + 1)}
+                className="w-10 h-10 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] active:scale-90 transition-transform text-lg"
+              >
+                ›
+              </button>
+            </div>
+
+            {/* Month grid */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {MONTHS_SHORT.map((name, idx) => {
+                const isNow = idx === nowMonth && year === nowYear;
+                const isSelected = idx === currentMonth && year === currentYear;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      onSelect(year, idx);
+                      onClose();
+                    }}
+                    className={`py-3.5 rounded-xl text-sm font-semibold transition-all active:scale-95 ${
+                      isSelected
+                        ? "bg-[var(--color-accent)] text-black"
+                        : isNow
+                        ? "bg-[var(--color-surface-secondary)] text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/40"
+                        : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
+                    }`}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full py-3 bg-[var(--color-surface-secondary)] rounded-xl text-sm font-semibold text-[var(--color-text-secondary)] active:scale-[0.98] transition-transform"
+            >
+              Annulla
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────
 export default function Home() {
   const { events, addEvent, removeEvent } = useCalendar();
@@ -131,31 +230,96 @@ export default function Home() {
     setDeleteConfirm,
   } = useUI();
 
-  const [weekOffset, setWeekOffset] = useState(0); // 0 = current, 1 = next
-  const scrollRef = useRef<HTMLDivElement>(null);
   const today = new Date();
 
-  // Derived week starts
-  const currentWeekStart = getWeekStart(today);
-  const weekStart = (() => {
-    const d = new Date(currentWeekStart);
-    d.setDate(d.getDate() + weekOffset * 7);
-    return d;
-  })();
-  const nextWeekStart = (() => {
-    const d = new Date(currentWeekStart);
-    d.setDate(d.getDate() + (weekOffset + 1) * 7);
-    return d;
-  })();
+  // Navigation: absolute week reference
+  const [navYear, setNavYear] = useState(today.getFullYear());
+  const [navMonth, setNavMonth] = useState(today.getMonth());
+  const [navWeekInMonth, setNavWeekInMonth] = useState(() => {
+    // Which week of the current month is today in? (0-indexed)
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const firstMonday = getWeekStart(firstOfMonth);
+    const diffMs = getWeekStart(today).getTime() - firstMonday.getTime();
+    return Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+  });
+
+  const [weekPage, setWeekPage] = useState(0); // 0 or 1 inside scroll
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Derived: first week start for the currently navigated month+week
+  const firstOfMonth = new Date(navYear, navMonth, 1);
+  const firstMondayOfMonth = getWeekStart(firstOfMonth);
+  const anchorWeekStart = new Date(firstMondayOfMonth);
+  anchorWeekStart.setDate(firstMondayOfMonth.getDate() + navWeekInMonth * 7);
+
+  const weekStart = new Date(anchorWeekStart);
+  weekStart.setDate(anchorWeekStart.getDate() + weekPage * 7);
+
+  const nextWeekStartDate = new Date(weekStart);
+  nextWeekStartDate.setDate(weekStart.getDate() + 7);
 
   const weekDates = getWeekDates(weekStart);
-  const nextWeekDates = getWeekDates(nextWeekStart);
+  const nextWeekDates = getWeekDates(nextWeekStartDate);
 
-  // ─── Sheet form state ───
+  // Today's week reference for "Oggi" button
+  const todayWeekStart = getWeekStart(today);
+
+  const isCurrentWeek =
+    weekStart.toDateString() === todayWeekStart.toDateString();
+
+  // Form state
   const [formTitle, setFormTitle] = useState("");
   const [formLoc, setFormLoc] = useState("");
   const [formDate, setFormDate] = useState("");
   const [formTime, setFormTime] = useState("");
+
+  // ─── Jump to today ───
+  const jumpToToday = useCallback(() => {
+    const t = new Date();
+    const first = new Date(t.getFullYear(), t.getMonth(), 1);
+    const firstMon = getWeekStart(first);
+    const todayMon = getWeekStart(t);
+    const weekIdx = Math.round(
+      (todayMon.getTime() - firstMon.getTime()) / (7 * 24 * 60 * 60 * 1000)
+    );
+    setNavYear(t.getFullYear());
+    setNavMonth(t.getMonth());
+    setNavWeekInMonth(Math.max(0, weekIdx));
+    setWeekPage(0);
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ left: 0, behavior: "instant" as ScrollBehavior });
+      }
+    }, 50);
+  }, []);
+
+  // ─── Month picker selection ───
+  const handleMonthSelect = useCallback((year: number, month: number) => {
+    setNavYear(year);
+    setNavMonth(month);
+    setNavWeekInMonth(0);
+    setWeekPage(0);
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ left: 0, behavior: "instant" as ScrollBehavior });
+      }
+    }, 50);
+  }, []);
+
+  // ─── Week navigation ───
+  const goToWeek = useCallback(
+    (newWeekInMonth: number) => {
+      setNavWeekInMonth(newWeekInMonth);
+      setWeekPage(0);
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTo({ left: 0, behavior: "instant" as ScrollBehavior });
+        }
+      }, 50);
+    },
+    []
+  );
 
   // ─── AI input ───
   const handleAISubmit = async () => {
@@ -193,44 +357,40 @@ export default function Home() {
     closeSheet();
   };
 
-  // ─── Scroll / snap tracking ───
+  // ─── Scroll tracking ───
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return;
     const { scrollLeft, clientWidth } = scrollRef.current;
     const page = Math.round(scrollLeft / clientWidth);
-    setWeekOffset(page);
+    setWeekPage(page);
   }, []);
 
-  // ─── Snap to week ───
   const snapTo = useCallback(
-    (offset: number) => {
+    (page: number) => {
       if (!scrollRef.current) return;
       scrollRef.current.scrollTo({
-        left: offset * scrollRef.current.clientWidth,
+        left: page * scrollRef.current.clientWidth,
         behavior: "smooth",
       });
     },
     []
   );
 
-  const goNext = () => snapTo(weekOffset + 1);
-  const goPrev = () => snapTo(weekOffset - 1);
-
-  // ─── Keyboard navigation ───
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") goNext();
-      if (e.key === "ArrowLeft") goPrev();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [weekOffset]);
-
-  // ─── Header labels ───
+  // ─── Labels ───
   const monthLabel = `${MONTHS_IT[weekStart.getMonth()]} ${weekStart.getFullYear()}`;
-  const nextMonthLabel = `${MONTHS_IT[nextWeekStart.getMonth()]} ${nextWeekStart.getFullYear()}`;
-  const isCurrentWeek =
-    weekStart.toDateString() === currentWeekStart.toDateString();
+  const nextMonthLabel = `${MONTHS_IT[nextWeekStartDate.getMonth()]} ${nextWeekStartDate.getFullYear()}`;
+
+  // Total weeks in current nav month
+  const lastDayOfMonth = new Date(navYear, navMonth + 1, 0);
+  const lastMondayOfMonth = getWeekStart(lastDayOfMonth);
+  const totalWeeks =
+    Math.round(
+      (lastMondayOfMonth.getTime() - firstMondayOfMonth.getTime()) /
+        (7 * 24 * 60 * 60 * 1000)
+    ) + 1;
+
+  const canGoPrev = navWeekInMonth > 0;
+  const canGoNext = navWeekInMonth < totalWeeks - 1;
 
   return (
     <div className="h-dvh flex flex-col bg-[var(--color-surface)] overflow-hidden">
@@ -249,10 +409,9 @@ export default function Home() {
               })}
             </p>
           </div>
-          {/* Quick-jump today */}
           {!isCurrentWeek && (
             <button
-              onClick={() => snapTo(0)}
+              onClick={jumpToToday}
               className="text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
             >
               Oggi
@@ -295,15 +454,21 @@ export default function Home() {
         </AnimatePresence>
       </div>
 
-      {/* ── Week label + nav dots ── */}
+      {/* ── Month label (tappable → picker) + week nav ── */}
       <div className="flex items-center justify-between px-5 pb-1 shrink-0">
-        <h2 className="text-sm font-semibold text-[var(--color-text-secondary)] tracking-wide uppercase">
-          {monthLabel}
-        </h2>
+        <button
+          onClick={() => setMonthPickerOpen(true)}
+          className="flex items-center gap-1.5 active:opacity-70 transition-opacity"
+        >
+          <h2 className="text-sm font-semibold text-[var(--color-text-secondary)] tracking-wide uppercase">
+            {monthLabel}
+          </h2>
+          <span className="text-[10px] text-[var(--color-text-tertiary)]">▼</span>
+        </button>
         <div className="flex gap-2 items-center">
           <button
-            onClick={goPrev}
-            disabled={weekOffset === 0}
+            onClick={() => goToWeek(navWeekInMonth - 1)}
+            disabled={!canGoPrev}
             className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] disabled:opacity-20 transition-opacity active:bg-[var(--color-surface-secondary)]"
           >
             ‹
@@ -312,7 +477,7 @@ export default function Home() {
             <button
               onClick={() => snapTo(0)}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                weekOffset === 0
+                weekPage === 0
                   ? "bg-[var(--color-accent)] w-5"
                   : "bg-[var(--color-surface-tertiary)]"
               }`}
@@ -320,15 +485,15 @@ export default function Home() {
             <button
               onClick={() => snapTo(1)}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                weekOffset === 1
+                weekPage === 1
                   ? "bg-[var(--color-accent)] w-5"
                   : "bg-[var(--color-surface-tertiary)]"
               }`}
             />
           </div>
           <button
-            onClick={goNext}
-            disabled={weekOffset >= 1}
+            onClick={() => goToWeek(navWeekInMonth + 1)}
+            disabled={!canGoNext}
             className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] disabled:opacity-20 transition-opacity active:bg-[var(--color-surface-secondary)]"
           >
             ›
@@ -352,22 +517,24 @@ export default function Home() {
         ))}
       </div>
 
-      {/* ── Week panels (snap scroll) ── */}
+      {/* ── Week panels ── */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory"
         onScroll={handleScroll}
       >
         <div className="flex h-full">
-          <WeekPanel dates={weekDates} events={events} isCurrent={isCurrentWeek} />
-          <WeekPanel dates={nextWeekDates} events={events} isCurrent={false} />
+          <WeekPanel dates={weekDates} events={events} isCurrent={isCurrentWeek && weekPage === 0} />
+          <WeekPanel dates={nextWeekDates} events={events} isCurrent={isCurrentWeek && weekPage === 1} />
         </div>
       </div>
 
-      {/* ── Week name indicator ── */}
+      {/* ── Week indicator ── */}
       <div className="text-center py-1.5 shrink-0">
         <p className="text-[11px] font-semibold text-[var(--color-text-tertiary)] tracking-wide uppercase">
-          {weekOffset === 0 ? "Questa settimana" : nextMonthLabel}
+          {weekPage === 0
+            ? `Settimana ${navWeekInMonth + 1} · ${monthLabel}`
+            : nextMonthLabel}
         </p>
       </div>
 
@@ -381,6 +548,15 @@ export default function Home() {
           Nuovo evento
         </button>
       </div>
+
+      {/* ── Month Picker Sheet ── */}
+      <MonthPicker
+        open={monthPickerOpen}
+        onClose={() => setMonthPickerOpen(false)}
+        onSelect={handleMonthSelect}
+        currentMonth={navMonth}
+        currentYear={navYear}
+      />
 
       {/* ── Add Event Sheet ── */}
       <AnimatePresence>
