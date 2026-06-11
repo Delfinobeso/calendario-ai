@@ -207,13 +207,13 @@ export default function Home() {
           {zoom === "year" && (
             <YearView
               key={`year-${focusYear}`} year={focusYear} events={events} direction={swipeDir}
-              onTapMonth={zoomToMonth} onSwipeLeft={goNext} onSwipeRight={goPrev}
+              onTapMonth={zoomToMonth} onSwipeDown={goPrev} onSwipeUp={goNext}
             />
           )}
           {zoom === "month" && (
             <MonthView
               key={`month-${focusYear}-${focusMonth}`} year={focusYear} month={focusMonth} events={events} direction={swipeDir}
-              onTapDay={zoomToDay} onSwipeLeft={goNext} onSwipeRight={goPrev}
+              onTapDay={zoomToDay} onSwipeDown={goPrev} onSwipeUp={goNext}
             />
           )}
           {zoom === "week" && (
