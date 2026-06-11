@@ -1,217 +1,34 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useCallback, useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   useCalendar,
   getWeekStart,
-  getWeekDates,
-  isToday,
-  getEventsForDay,
-  formatTime,
   CalendarEvent,
 } from "@/store/calendar";
 import { useUI } from "@/store/ui";
 import { parseLocally } from "@/lib/parser";
+import { usePinchZoom } from "@/hooks/usePinchZoom";
 
-const WEEKDAY_LABELS = ["LUN", "MAR", "MER", "GIO", "VEN", "SAB", "DOM"];
+import YearView from "@/components/YearView";
+import MonthView from "@/components/MonthView";
+import WeekView from "@/components/WeekView";
+import DayView from "@/components/DayView";
+
+type ZoomLevel = "year" | "month" | "week" | "day";
+
 const MONTHS_IT = [
   "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
   "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
 ];
-const MONTHS_SHORT = [
-  "Gen", "Feb", "Mar", "Apr", "Mag", "Giu",
-  "Lug", "Ago", "Set", "Ott", "Nov", "Dic",
-];
 
-function getColor(index: number): string {
-  const colors = ["#c9a820", "#e04080", "#20c0a0", "#6c5ce7", "#e17055"];
-  return colors[index % colors.length];
-}
-
-// ─── Week Panel ───────────────────────────────────────────────
-function WeekPanel({
-  dates,
-  events,
-  isCurrent,
-}: {
-  dates: Date[];
-  events: CalendarEvent[];
-  isCurrent: boolean;
-}) {
-  const { setDeleteConfirm } = useUI();
-  const todayRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (isCurrent && todayRef.current) {
-      todayRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-  }, [isCurrent]);
-
-  return (
-    <div className="min-w-full h-full flex flex-col snap-center">
-      <div className="flex flex-1 px-3 gap-1.5 min-h-0">
-        {dates.map((date, idx) => {
-          const dayEvents = getEventsForDay(events, date);
-          const todayCheck = isToday(date);
-          const isWeekend = idx >= 5;
-          const dayNum = date.getDate();
-
-          return (
-            <div
-              key={date.toISOString()}
-              ref={todayCheck && isCurrent ? todayRef : undefined}
-              className={`flex-1 flex flex-col rounded-2xl p-1.5 gap-1 transition-colors duration-300 ${
-                todayCheck && isCurrent
-                  ? "bg-[var(--color-today)] ring-1 ring-[var(--color-accent)]/30"
-                  : isWeekend
-                  ? "bg-[var(--color-weekend)]"
-                  : ""
-              }`}
-            >
-              <div className="flex justify-center pt-1 pb-0.5">
-                <span
-                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold transition-all ${
-                    todayCheck && isCurrent
-                      ? "bg-[var(--color-accent)] text-black today-pulse shadow-[0_0_12px_var(--color-accent)]"
-                      : "text-[var(--color-text-secondary)]"
-                  }`}
-                >
-                  {dayNum}
-                </span>
-              </div>
-              <div className="flex-1 flex flex-col gap-1 min-h-0 overflow-hidden">
-                {dayEvents.slice(0, 4).map((ev, ei) => (
-                  <motion.div
-                    key={ev.id || ei}
-                    layout
-                    initial={{ opacity: 0, scale: 0.92 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="rounded-xl px-2 py-1.5 cursor-pointer text-[10px] leading-tight font-medium truncate active:opacity-70 transition-opacity"
-                    style={{
-                      background: getColor(ei) + "18",
-                      color: getColor(ei),
-                      borderLeft: `2.5px solid ${getColor(ei)}`,
-                    }}
-                    onClick={() => ev.id != null && setDeleteConfirm(ev.id)}
-                  >
-                    <div className="truncate font-semibold mb-0.5">{ev.title}</div>
-                    <div className="opacity-70">{formatTime(ev.start_time)}</div>
-                  </motion.div>
-                ))}
-                {dayEvents.length > 4 && (
-                  <div className="text-[10px] text-[var(--color-text-tertiary)] text-center font-medium">
-                    +{dayEvents.length - 4}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Month Picker Sheet ───────────────────────────────────────
-function MonthPicker({
-  open,
-  onClose,
-  onSelect,
-  currentMonth,
-  currentYear,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onSelect: (year: number, month: number) => void;
-  currentMonth: number;
-  currentYear: number;
-}) {
-  const [year, setYear] = useState(currentYear);
-  const today = new Date();
-  const nowMonth = today.getMonth();
-  const nowYear = today.getFullYear();
-
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 sheet-blur z-40"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-3xl px-5 pt-6 pb-safe border-t border-[var(--color-surface-tertiary)]/50"
-          >
-            <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/30 rounded-full mx-auto mb-6" />
-            <h2 className="text-xl font-bold mb-4">Seleziona mese</h2>
-
-            {/* Year row */}
-            <div className="flex items-center justify-between mb-5">
-              <button
-                onClick={() => setYear((y) => y - 1)}
-                className="w-10 h-10 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] active:scale-90 transition-transform text-lg"
-              >
-                ‹
-              </button>
-              <span className="text-lg font-bold text-[var(--color-text-primary)]">
-                {year}
-              </span>
-              <button
-                onClick={() => setYear((y) => y + 1)}
-                className="w-10 h-10 rounded-xl bg-[var(--color-surface-secondary)] flex items-center justify-center text-[var(--color-text-secondary)] active:scale-90 transition-transform text-lg"
-              >
-                ›
-              </button>
-            </div>
-
-            {/* Month grid */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {MONTHS_SHORT.map((name, idx) => {
-                const isNow = idx === nowMonth && year === nowYear;
-                const isSelected = idx === currentMonth && year === currentYear;
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      onSelect(year, idx);
-                      onClose();
-                    }}
-                    className={`py-3.5 rounded-xl text-sm font-semibold transition-all active:scale-95 ${
-                      isSelected
-                        ? "bg-[var(--color-accent)] text-black"
-                        : isNow
-                        ? "bg-[var(--color-surface-secondary)] text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/40"
-                        : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
-                    }`}
-                  >
-                    {name}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={onClose}
-              className="w-full py-3 bg-[var(--color-surface-secondary)] rounded-xl text-sm font-semibold text-[var(--color-text-secondary)] active:scale-[0.98] transition-transform"
-            >
-              Annulla
-            </button>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
+const ZOOM_LABELS: Record<ZoomLevel, string> = {
+  year: "Anno",
+  month: "Mese",
+  week: "Settimana",
+  day: "Giorno",
+};
 
 // ─── Page ─────────────────────────────────────────────────────
 export default function Home() {
@@ -231,95 +48,81 @@ export default function Home() {
   } = useUI();
 
   const today = new Date();
+  const currentWeekStart = getWeekStart(today);
 
-  // Navigation: absolute week reference
-  const [navYear, setNavYear] = useState(today.getFullYear());
-  const [navMonth, setNavMonth] = useState(today.getMonth());
-  const [navWeekInMonth, setNavWeekInMonth] = useState(() => {
-    // Which week of the current month is today in? (0-indexed)
-    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const firstMonday = getWeekStart(firstOfMonth);
-    const diffMs = getWeekStart(today).getTime() - firstMonday.getTime();
-    return Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
-  });
+  // ─── Zoom state ───
+  const [zoom, setZoom] = useState<ZoomLevel>("week");
+  const [focusDate, setFocusDate] = useState(today);
 
-  const [weekPage, setWeekPage] = useState(0); // 0 or 1 inside scroll
-  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // Derived values for each zoom level
+  const focusYear = focusDate.getFullYear();
+  const focusMonth = focusDate.getMonth();
+  const focusWeekStart = useMemo(() => getWeekStart(focusDate), [focusDate]);
 
-  // Derived: first week start for the currently navigated month+week
-  const firstOfMonth = new Date(navYear, navMonth, 1);
-  const firstMondayOfMonth = getWeekStart(firstOfMonth);
-  const anchorWeekStart = new Date(firstMondayOfMonth);
-  anchorWeekStart.setDate(firstMondayOfMonth.getDate() + navWeekInMonth * 7);
+  // ─── Zoom navigation ───
+  const zoomOut = useCallback(() => {
+    setZoom((z) => {
+      switch (z) {
+        case "day":   return "week";
+        case "week":  return "month";
+        case "month": return "year";
+        default:      return "year";
+      }
+    });
+  }, []);
 
-  const weekStart = new Date(anchorWeekStart);
-  weekStart.setDate(anchorWeekStart.getDate() + weekPage * 7);
+  const zoomToDay = useCallback((d: Date) => {
+    setFocusDate(d);
+    setZoom("day");
+  }, []);
 
-  const nextWeekStartDate = new Date(weekStart);
-  nextWeekStartDate.setDate(weekStart.getDate() + 7);
+  const zoomToWeek = useCallback((d: Date) => {
+    setFocusDate(d);
+    setZoom("week");
+  }, []);
 
-  const weekDates = getWeekDates(weekStart);
-  const nextWeekDates = getWeekDates(nextWeekStartDate);
+  const zoomToMonth = useCallback((m: number) => {
+    setFocusDate(new Date(focusYear, m, 1));
+    setZoom("month");
+  }, [focusYear]);
 
-  // Today's week reference for "Oggi" button
-  const todayWeekStart = getWeekStart(today);
+  const jumpToToday = useCallback(() => {
+    setFocusDate(new Date());
+    setZoom("week");
+  }, []);
+
+  // Pinch
+  const pinch = usePinchZoom(zoomOut, 0.6);
+
+  // ─── Header label ───
+  const headerLabel = useMemo(() => {
+    switch (zoom) {
+      case "year":  return String(focusYear);
+      case "month": return `${MONTHS_IT[focusMonth]} ${focusYear}`;
+      case "week": {
+        const end = new Date(focusWeekStart);
+        end.setDate(end.getDate() + 6);
+        const sameMonth = focusWeekStart.getMonth() === end.getMonth();
+        if (sameMonth) {
+          return `${MONTHS_IT[focusWeekStart.getMonth()]} ${focusWeekStart.getFullYear()}`;
+        }
+        return `${focusWeekStart.getDate()} ${MONTHS_IT[focusWeekStart.getMonth()]} – ${end.getDate()} ${MONTHS_IT[end.getMonth()]}`;
+      }
+      case "day":
+        return focusDate.toLocaleDateString("it", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        });
+    }
+  }, [zoom, focusYear, focusMonth, focusWeekStart, focusDate]);
 
   const isCurrentWeek =
-    weekStart.toDateString() === todayWeekStart.toDateString();
+    zoom === "week" &&
+    focusWeekStart.toDateString() === currentWeekStart.toDateString();
 
-  // Form state
-  const [formTitle, setFormTitle] = useState("");
-  const [formLoc, setFormLoc] = useState("");
-  const [formDate, setFormDate] = useState("");
-  const [formTime, setFormTime] = useState("");
-
-  // ─── Jump to today ───
-  const jumpToToday = useCallback(() => {
-    const t = new Date();
-    const first = new Date(t.getFullYear(), t.getMonth(), 1);
-    const firstMon = getWeekStart(first);
-    const todayMon = getWeekStart(t);
-    const weekIdx = Math.round(
-      (todayMon.getTime() - firstMon.getTime()) / (7 * 24 * 60 * 60 * 1000)
-    );
-    setNavYear(t.getFullYear());
-    setNavMonth(t.getMonth());
-    setNavWeekInMonth(Math.max(0, weekIdx));
-    setWeekPage(0);
-    setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({ left: 0, behavior: "instant" as ScrollBehavior });
-      }
-    }, 50);
-  }, []);
-
-  // ─── Month picker selection ───
-  const handleMonthSelect = useCallback((year: number, month: number) => {
-    setNavYear(year);
-    setNavMonth(month);
-    setNavWeekInMonth(0);
-    setWeekPage(0);
-    setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({ left: 0, behavior: "instant" as ScrollBehavior });
-      }
-    }, 50);
-  }, []);
-
-  // ─── Week navigation ───
-  const goToWeek = useCallback(
-    (newWeekInMonth: number) => {
-      setNavWeekInMonth(newWeekInMonth);
-      setWeekPage(0);
-      setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTo({ left: 0, behavior: "instant" as ScrollBehavior });
-        }
-      }, 50);
-    },
-    []
-  );
+  const isTodayFocused =
+    zoom === "day" && focusDate.toDateString() === today.toDateString();
 
   // ─── AI input ───
   const handleAISubmit = async () => {
@@ -338,7 +141,12 @@ export default function Home() {
     setTimeout(() => setAiResult(null), 2500);
   };
 
-  // ─── Form submit ───
+  // ─── Form state ───
+  const [formTitle, setFormTitle] = useState("");
+  const [formLoc, setFormLoc] = useState("");
+  const [formDate, setFormDate] = useState("");
+  const [formTime, setFormTime] = useState("");
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle || !formDate || !formTime) return;
@@ -357,59 +165,36 @@ export default function Home() {
     closeSheet();
   };
 
-  // ─── Scroll tracking ───
-  const handleScroll = useCallback(() => {
-    if (!scrollRef.current) return;
-    const { scrollLeft, clientWidth } = scrollRef.current;
-    const page = Math.round(scrollLeft / clientWidth);
-    setWeekPage(page);
-  }, []);
-
-  const snapTo = useCallback(
-    (page: number) => {
-      if (!scrollRef.current) return;
-      scrollRef.current.scrollTo({
-        left: page * scrollRef.current.clientWidth,
-        behavior: "smooth",
-      });
-    },
-    []
-  );
-
-  // ─── Labels ───
-  const monthLabel = `${MONTHS_IT[weekStart.getMonth()]} ${weekStart.getFullYear()}`;
-  const nextMonthLabel = `${MONTHS_IT[nextWeekStartDate.getMonth()]} ${nextWeekStartDate.getFullYear()}`;
-
-  // Total weeks in current nav month
-  const lastDayOfMonth = new Date(navYear, navMonth + 1, 0);
-  const lastMondayOfMonth = getWeekStart(lastDayOfMonth);
-  const totalWeeks =
-    Math.round(
-      (lastMondayOfMonth.getTime() - firstMondayOfMonth.getTime()) /
-        (7 * 24 * 60 * 60 * 1000)
-    ) + 1;
-
-  const canGoPrev = navWeekInMonth > 0;
-  const canGoNext = navWeekInMonth < totalWeeks - 1;
-
   return (
-    <div className="h-dvh flex flex-col bg-[var(--color-surface)] overflow-hidden">
+    <div
+      className="h-dvh flex flex-col bg-[var(--color-surface)] overflow-hidden"
+      {...pinch}
+    >
       {/* ── Header ── */}
       <header className="notch-top px-5 pb-2 shrink-0">
         <div className="flex items-baseline justify-between">
           <div>
-            <h1 className="text-[22px] font-bold text-[var(--color-text-primary)] tracking-tight">
-              Calendario
-            </h1>
-            <p className="text-sm text-[var(--color-text-tertiary)] mt-0.5 capitalize">
-              {today.toLocaleDateString("it", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
+            <div className="flex items-center gap-2">
+              <h1 className="text-[22px] font-bold text-[var(--color-text-primary)] tracking-tight">
+                Calendario
+              </h1>
+              <span className="text-[10px] font-semibold text-[var(--color-text-tertiary)] bg-[var(--color-surface-secondary)] px-2 py-0.5 rounded-full uppercase">
+                {ZOOM_LABELS[zoom]}
+              </span>
+            </div>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5 capitalize">
+              {headerLabel}
             </p>
           </div>
-          {!isCurrentWeek && (
+          {zoom !== "day" && !isCurrentWeek && zoom === "week" && (
+            <button
+              onClick={jumpToToday}
+              className="text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+            >
+              Oggi
+            </button>
+          )}
+          {(zoom === "year" || zoom === "month") && (
             <button
               onClick={jumpToToday}
               className="text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
@@ -454,109 +239,68 @@ export default function Home() {
         </AnimatePresence>
       </div>
 
-      {/* ── Month label (tappable → picker) + week nav ── */}
-      <div className="flex items-center justify-between px-5 pb-1 shrink-0">
-        <button
-          onClick={() => setMonthPickerOpen(true)}
-          className="flex items-center gap-1.5 active:opacity-70 transition-opacity"
-        >
-          <h2 className="text-sm font-semibold text-[var(--color-text-secondary)] tracking-wide uppercase">
-            {monthLabel}
-          </h2>
-          <span className="text-[10px] text-[var(--color-text-tertiary)]">▼</span>
-        </button>
-        <div className="flex gap-2 items-center">
-          <button
-            onClick={() => goToWeek(navWeekInMonth - 1)}
-            disabled={!canGoPrev}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] disabled:opacity-20 transition-opacity active:bg-[var(--color-surface-secondary)]"
-          >
-            ‹
-          </button>
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => snapTo(0)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                weekPage === 0
-                  ? "bg-[var(--color-accent)] w-5"
-                  : "bg-[var(--color-surface-tertiary)]"
-              }`}
+      {/* ── Zoom view ── */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {zoom === "year" && (
+            <YearView
+              key={`year-${focusYear}`}
+              year={focusYear}
+              events={events}
+              onTapMonth={zoomToMonth}
             />
-            <button
-              onClick={() => snapTo(1)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                weekPage === 1
-                  ? "bg-[var(--color-accent)] w-5"
-                  : "bg-[var(--color-surface-tertiary)]"
-              }`}
+          )}
+          {zoom === "month" && (
+            <MonthView
+              key={`month-${focusYear}-${focusMonth}`}
+              year={focusYear}
+              month={focusMonth}
+              events={events}
+              onTapDay={zoomToDay}
             />
-          </div>
-          <button
-            onClick={() => goToWeek(navWeekInMonth + 1)}
-            disabled={!canGoNext}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--color-text-tertiary)] disabled:opacity-20 transition-opacity active:bg-[var(--color-surface-secondary)]"
-          >
-            ›
-          </button>
-        </div>
-      </div>
-
-      {/* ── Weekday labels ── */}
-      <div className="flex px-4 pb-1.5 shrink-0">
-        {WEEKDAY_LABELS.map((l, i) => (
-          <div
-            key={l}
-            className={`flex-1 text-center text-[11px] font-bold tracking-wider ${
-              i >= 5
-                ? "text-[var(--color-text-tertiary)]/50"
-                : "text-[var(--color-text-tertiary)]"
-            }`}
-          >
-            {l}
-          </div>
-        ))}
-      </div>
-
-      {/* ── Week panels ── */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory"
-        onScroll={handleScroll}
-      >
-        <div className="flex h-full">
-          <WeekPanel dates={weekDates} events={events} isCurrent={isCurrentWeek && weekPage === 0} />
-          <WeekPanel dates={nextWeekDates} events={events} isCurrent={isCurrentWeek && weekPage === 1} />
-        </div>
-      </div>
-
-      {/* ── Week indicator ── */}
-      <div className="text-center py-1.5 shrink-0">
-        <p className="text-[11px] font-semibold text-[var(--color-text-tertiary)] tracking-wide uppercase">
-          {weekPage === 0
-            ? `Settimana ${navWeekInMonth + 1} · ${monthLabel}`
-            : nextMonthLabel}
-        </p>
+          )}
+          {zoom === "week" && (
+            <WeekView
+              key={`week-${focusWeekStart.toISOString()}`}
+              weekStart={focusWeekStart}
+              events={events}
+              onTapDay={zoomToDay}
+              onDeleteEvent={(id) => setDeleteConfirm(id)}
+            />
+          )}
+          {zoom === "day" && (
+            <DayView
+              key={`day-${focusDate.toISOString()}`}
+              date={focusDate}
+              events={events}
+              onTapEvent={(id) => setDeleteConfirm(id)}
+              onPinchOut={zoomOut}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── Bottom bar ── */}
-      <div className="pb-safe px-5 pt-1 shrink-0">
+      <div className="pb-safe px-5 pt-1 shrink-0 flex gap-3">
+        {zoom !== "year" && (
+          <button
+            onClick={zoomOut}
+            className="flex-1 py-3 bg-[var(--color-surface-secondary)] rounded-2xl text-[var(--color-text-secondary)] text-sm font-medium active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5"
+          >
+            <span className="text-base">🤏</span>
+            {ZOOM_LABELS[zoom === "day" ? "week" : zoom === "week" ? "month" : "year"]}
+          </button>
+        )}
         <button
           onClick={openSheet}
-          className="w-full py-3.5 bg-[var(--color-accent)] text-black rounded-2xl font-semibold text-[15px] active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+          className={`${
+            zoom !== "year" ? "flex-[2]" : "flex-1"
+          } py-3 bg-[var(--color-accent)] text-black rounded-2xl font-semibold text-[15px] active:scale-[0.98] transition-transform flex items-center justify-center gap-2`}
         >
           <span className="text-lg leading-none">+</span>
           Nuovo evento
         </button>
       </div>
-
-      {/* ── Month Picker Sheet ── */}
-      <MonthPicker
-        open={monthPickerOpen}
-        onClose={() => setMonthPickerOpen(false)}
-        onSelect={handleMonthSelect}
-        currentMonth={navMonth}
-        currentYear={navYear}
-      />
 
       {/* ── Add Event Sheet ── */}
       <AnimatePresence>
