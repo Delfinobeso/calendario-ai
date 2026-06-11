@@ -18,9 +18,9 @@ export default function WeekView({
   onTapDay, onDeleteEvent, onSwipeLeft, onSwipeRight,
 }: {
   weekStart: Date; events: CalendarEvent[]; direction: number;
-  onTapDay: (d: Date) => void; onDeleteEvent: (id: number) => void;
-  onSwipeLeft: () => void; onSwipeRight: () => void;
-}) {
+  onTapDay: (d: Date) => void; onDeleteEvent: (ev: CalendarEvent) => void;
+ onSwipeLeft: () => void; onSwipeRight: () => void;
+ }) {
   const dates = getWeekDates(weekStart);
   const todayRef = useRef<HTMLButtonElement>(null);
   const now = new Date();
@@ -72,7 +72,7 @@ export default function WeekView({
                     transition={{type:"spring",stiffness:400,damping:30}}
                     className="rounded-xl px-2 py-1.5 text-[10px] leading-tight font-medium truncate"
                     style={{background:getColor(ei)+"18",color:getColor(ei),borderLeft:`2.5px solid ${getColor(ei)}`}}
-                    onClick={e => { e.stopPropagation(); ev.id != null && onDeleteEvent(ev.id); }}>
+                    onClick={e => { e.stopPropagation(); onDeleteEvent(ev); }}>
                     <div className="truncate font-semibold mb-0.5">{ev.title}</div>
                     <div className="opacity-70">{formatTime(ev.start_time)}</div>
                   </motion.div>

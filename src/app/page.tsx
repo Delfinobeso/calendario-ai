@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   useCalendar,
   getWeekStart,
+  type CalendarEvent,
 } from "@/store/calendar";
 import { useUI } from "@/store/ui";
 import { parseLocally } from "@/lib/parser";
@@ -30,12 +31,12 @@ const ZOOM_LABELS: Record<ZoomLevel, string> = {
 };
 
 export default function Home() {
-  const { events, addEvent, removeEvent, loadEvents } = useCalendar();
+  const { events, addEvent, removeEvent, loadEvents, updateEvent } = useCalendar();
   const {
     aiInput, aiLoading, aiResult,
     setAiInput, setAiLoading, setAiResult,
     sheetOpen, openSheet, closeSheet,
-    deleteConfirm, setDeleteConfirm,
+    editEvent, openEdit, closeEdit,
   } = useUI();
 
   const today = new Date();
@@ -159,6 +160,37 @@ export default function Home() {
     closeSheet();
   };
 
+  // ─── Edit event ───
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editEvent?.id || !formTitle || !formDate || !formTime) return;
+    await updateEvent(editEvent.id, {
+      title: formTitle,
+      location: formLoc,
+      start_time: `${formDate}T${formTime}:00`,
+      end_time: `${formDate}T${formTime}:00`,
+    });
+    setFormTitle(""); setFormLoc(""); setFormDate(""); setFormTime("");
+    closeEdit();
+  };
+
+  const handleDelete = async () => {
+    if (!editEvent?.id) return;
+    await removeEvent(editEvent.id);
+    closeEdit();
+  };
+
+  // Pre-fill form when edit opens
+  useEffect(() => {
+    if (editEvent) {
+      setFormTitle(editEvent.title);
+      setFormLoc(editEvent.location || "");
+      const start = new Date(editEvent.start_time);
+      setFormDate(start.toISOString().slice(0, 10));
+      setFormTime(start.toTimeString().slice(0, 5));
+    }
+  }, [editEvent]);
+
   return (
     <div className="h-dvh flex flex-col bg-[var(--color-surface)] overflow-hidden" {...pinch}>
       {/* ── Header ── */}
@@ -222,14 +254,14 @@ export default function Home() {
           {zoom === "week" && (
             <WeekView
               key={`week-${focusWeekStart.toISOString()}`} weekStart={focusWeekStart} events={events} direction={swipeDir}
-              onTapDay={zoomToDay} onDeleteEvent={(id) => setDeleteConfirm(id)}
+              onTapDay={zoomToDay} onDeleteEvent={(ev) => openEdit(ev)}
               onSwipeLeft={goNext} onSwipeRight={goPrev}
             />
           )}
           {zoom === "day" && (
             <DayView
               key={`day-${focusDate.toISOString()}`} date={focusDate} events={events} direction={swipeDir}
-              onTapEvent={(id) => setDeleteConfirm(id)} onSwipeLeft={goNext} onSwipeRight={goPrev}
+              onTapEvent={(ev) => openEdit(ev)} onSwipeLeft={goNext} onSwipeRight={goPrev}
             />
           )}
         </AnimatePresence>
@@ -280,24 +312,39 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* ── Delete confirmation ── */}
+      {/* ── Edit Event Sheet ── */}
       <AnimatePresence>
-        {deleteConfirm !== null && (
+        {editEvent && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 sheet-blur z-50 flex items-center justify-center px-8" onClick={() => setDeleteConfirm(null)}>
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }} onClick={(e) => e.stopPropagation()}
-                className="bg-[var(--color-surface-secondary)] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-                <h3 className="text-lg font-bold mb-2">Eliminare evento?</h3>
-                <p className="text-[var(--color-text-secondary)] text-sm mb-5">L&apos;operazione non può essere annullata.</p>
+              className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeEdit} />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-3xl px-5 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/50">
+              <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/30 rounded-full mx-auto mb-6" />
+              <h2 className="text-xl font-bold mb-5">Modifica evento</h2>
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[15px]"
+                  placeholder="Titolo evento" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} autoFocus enterKeyHint="next" />
+                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
+                  placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
                 <div className="flex gap-3">
-                  <button onClick={() => setDeleteConfirm(null)}
-                    className="flex-1 py-3 bg-[var(--color-surface-tertiary)] rounded-xl text-sm font-semibold active:scale-95 transition-transform">Annulla</button>
-                  <button onClick={() => { removeEvent(deleteConfirm); setDeleteConfirm(null); }}
-                    className="flex-1 py-3 bg-[var(--color-danger)] text-white rounded-xl text-sm font-semibold active:scale-95 transition-transform">Elimina</button>
+                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] outline-none text-[15px] color-scheme-dark"
+                    value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] outline-none text-[15px] color-scheme-dark"
+                    value={formTime} onChange={(e) => setFormTime(e.target.value)} />
                 </div>
-              </motion.div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={handleDelete}
+                    className="flex-1 py-4 bg-[var(--color-danger)] text-white rounded-xl font-semibold text-[15px] active:scale-[0.98] transition-transform">
+                    Elimina
+                  </button>
+                  <button type="submit"
+                    className="flex-[2] py-4 bg-[var(--color-accent)] text-black rounded-xl font-semibold text-[15px] active:scale-[0.98] transition-transform">
+                    Salva modifiche
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </>
         )}

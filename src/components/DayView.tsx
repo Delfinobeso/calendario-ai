@@ -25,7 +25,7 @@ export default function DayView({
   onTapEvent, onSwipeLeft, onSwipeRight,
 }: {
   date: Date; events: CalendarEvent[]; direction: number;
-  onTapEvent: (id: number) => void;
+  onTapEvent: (ev: CalendarEvent) => void;
   onSwipeLeft: () => void; onSwipeRight: () => void;
 }) {
   const dayEvents = getEventsForDay(events, date);
@@ -73,7 +73,7 @@ export default function DayView({
               <motion.div key={ev.id || ei} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} whileTap={{ scale: 0.98 }}
                 className="absolute left-10 right-1 rounded-xl px-2.5 py-1.5 cursor-pointer overflow-hidden"
                 style={{ top, height: h, background: c + "20", borderLeft: `3px solid ${c}`, color: c }}
-                onClick={() => ev.id != null && onTapEvent(ev.id)}>
+                onClick={() => onTapEvent(ev)}>
                 <div className="text-[11px] font-semibold leading-tight truncate">{ev.title}</div>
                 <div className="text-[10px] opacity-70 leading-tight">{formatTime(ev.start_time)} – {formatTime(ev.end_time)}</div>
                 {ev.location && <div className="text-[10px] opacity-50 leading-tight truncate mt-0.5">📍 {ev.location}</div>}

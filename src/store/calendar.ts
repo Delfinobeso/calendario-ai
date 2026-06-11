@@ -22,6 +22,7 @@ interface CalendarStore {
   loadEvents: (start?: string, end?: string) => Promise<void>;
   addEvent: (event: Omit<CalendarEvent, "id">) => Promise<CalendarEvent>;
   removeEvent: (id: number) => Promise<void>;
+  updateEvent: (id: number, event: Partial<CalendarEvent>) => Promise<void>;
   loadToday: () => Promise<void>;
 }
 
@@ -77,6 +78,19 @@ export const useCalendar = create<CalendarStore>((set, get) => ({
     set((s) => ({
       events: s.events.filter((e) => e.id !== id),
       todayEvents: s.todayEvents.filter((e) => e.id !== id),
+    }));
+  },
+
+  updateEvent: async (id, updates) => {
+    if (!API_BASE) return;
+    const updated = await fetchAPI(`/events/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    set((s) => ({
+      events: s.events.map((e) => (e.id === id ? updated : e)),
+      todayEvents: s.todayEvents.map((e) => (e.id === id ? updated : e)),
     }));
   },
 
