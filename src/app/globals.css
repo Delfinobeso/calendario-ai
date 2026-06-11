@@ -1,19 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  --color-surface: oklch(0.15 0.02 95);
-  --color-surface-secondary: oklch(0.20 0.02 95);
-  --color-surface-tertiary: oklch(0.25 0.02 95);
-  --color-accent: oklch(0.82 0.18 105);
-  --color-accent-hover: oklch(0.78 0.20 100);
-  --color-text-primary: oklch(0.94 0.01 95);
-  --color-text-secondary: oklch(0.65 0.02 95);
-  --color-text-tertiary: oklch(0.45 0.02 95);
+  --color-surface: oklch(0.13 0.02 95);
+  --color-surface-secondary: oklch(0.18 0.02 95);
+  --color-surface-tertiary: oklch(0.24 0.02 95);
+  --color-accent: oklch(0.80 0.19 100);
+  --color-accent-hover: oklch(0.76 0.20 96);
+  --color-text-primary: oklch(0.96 0.01 95);
+  --color-text-secondary: oklch(0.68 0.02 95);
+  --color-text-tertiary: oklch(0.48 0.02 95);
   --color-danger: oklch(0.55 0.22 25);
-  --color-success: oklch(0.65 0.18 160);
-  --color-today: oklch(0.82 0.18 105 / 0.15);
-  --color-weekend: oklch(0.20 0.01 95);
+  --color-success: oklch(0.65 0.18 155);
+  --color-today: oklch(0.80 0.19 100 / 0.12);
+  --color-weekend: oklch(0.16 0.01 95);
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
@@ -31,6 +31,7 @@ html {
   color: var(--color-text-primary);
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
   overflow: hidden;
   height: 100%;
@@ -43,14 +44,26 @@ body {
   overflow: hidden;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 0; height: 0; }
+/* Hide scrollbars but keep functionality */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
 
 /* Safe area utilities */
-.pt-safe { padding-top: var(--sat); }
-.pb-safe { padding-bottom: var(--sab); }
+.pt-safe {
+  padding-top: var(--sat);
+}
+.pb-safe {
+  padding-bottom: max(20px, var(--sab));
+}
 
-/* Sheet backdrop */
+/* Dynamic Island notch-aware */
+.notch-top {
+  padding-top: calc(var(--sat) + 8px);
+}
+
+/* Sheet backdrop with frosted glass */
 .sheet-blur {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -61,11 +74,41 @@ body {
   animation: todayPulse 2s ease-in-out infinite;
 }
 @keyframes todayPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
-/* Dynamic Island notch-aware */
-.notch-top {
-  padding-top: calc(var(--sat) + 8px);
+/* Native date/time inputs dark mode */
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
+  -webkit-appearance: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  opacity: 0.6;
+}
+
+/* Input placeholder styling */
+::placeholder {
+  color: var(--color-text-tertiary);
+  opacity: 0.6;
+}
+
+/* Focus ring for accessibility */
+input:focus-visible {
+  outline: none;
+}
+
+/* Selection color */
+::selection {
+  background: var(--color-accent);
+  color: black;
 }
