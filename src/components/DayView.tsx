@@ -47,7 +47,7 @@ export default function DayView({
 
   return (
     <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
-      transition={{ type: "spring", stiffness: 350, damping: 32 }}
+      transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
       className="h-full flex flex-col overflow-hidden">
       <div className="text-center py-3 shrink-0">
         <p className="text-sm font-semibold text-[var(--color-text-secondary)] capitalize">
