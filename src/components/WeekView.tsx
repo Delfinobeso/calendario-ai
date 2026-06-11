@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import {
   CalendarEvent,
   getWeekDates,
@@ -20,26 +20,28 @@ function getColor(index: number): string {
 export default function WeekView({
   weekStart,
   events,
+  direction,
   onTapDay,
   onDeleteEvent,
+  onSwipeLeft,
+  onSwipeRight,
 }: {
   weekStart: Date;
   events: CalendarEvent[];
+  direction: number;
   onTapDay: (date: Date) => void;
   onDeleteEvent: (id: number) => void;
+  onSwipeLeft: () => void;
+  onSwipeRight: () => void;
 }) {
   const dates = getWeekDates(weekStart);
   const todayRef = useRef<HTMLButtonElement>(null);
-  const isCurrentWeek =
-    weekStart.toDateString() ===
-    (() => {
-      const now = new Date();
-      const day = now.getDay();
-      const diff = day === 0 ? -6 : 1 - day;
-      const mon = new Date(now);
-      mon.setDate(now.getDate() + diff);
-      return mon;
-    })().toDateString();
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(now);
+  mon.setDate(now.getDate() + diff);
+  const isCurrentWeek = weekStart.toDateString() === mon.toDateString();
 
   useEffect(() => {
     if (isCurrentWeek && todayRef.current) {
@@ -47,12 +49,27 @@ export default function WeekView({
     }
   }, [isCurrentWeek]);
 
+  const variants = {
+    enter: (dir: number) => ({ x: dir > 0 ? "40%" : "-40%", opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? "-40%" : "40%", opacity: 0 }),
+  };
+
+  const handlePanEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (Math.abs(info.offset.x) > 60 && Math.abs(info.offset.x) > Math.abs(info.offset.y) * 2) {
+      if (info.offset.x < 0) onSwipeLeft();
+      else onSwipeRight();
+    }
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.05 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: "spring", stiffness: 350, damping: 32 }}
       className="h-full flex flex-col overflow-hidden"
     >
       {/* Day labels */}
@@ -61,9 +78,7 @@ export default function WeekView({
           <div
             key={l}
             className={`flex-1 text-center text-[11px] font-bold tracking-wider ${
-              i >= 5
-                ? "text-[var(--color-text-tertiary)]/50"
-                : "text-[var(--color-text-tertiary)]"
+              i >= 5 ? "text-[var(--color-text-tertiary)]/50" : "text-[var(--color-text-tertiary)]"
             }`}
           >
             {l}
@@ -71,8 +86,14 @@ export default function WeekView({
         ))}
       </div>
 
-      {/* Day columns */}
-      <div className="flex-1 flex px-3 gap-1.5 min-h-0">
+      {/* Day columns — draggable for swipe */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.1}
+        onPanEnd={handlePanEnd}
+        className="flex-1 flex px-3 gap-1.5 min-h-0"
+      >
         {dates.map((date, idx) => {
           const dayEvents = getEventsForDay(events, date);
           const todayCheck = isToday(date);
@@ -91,7 +112,6 @@ export default function WeekView({
                   : "bg-transparent"
               }`}
             >
-              {/* Day number */}
               <div className="flex justify-center pt-1 pb-0.5">
                 <span
                   className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold transition-all ${
@@ -104,7 +124,6 @@ export default function WeekView({
                 </span>
               </div>
 
-              {/* Events */}
               <div className="flex-1 flex flex-col gap-1 min-h-0 overflow-hidden">
                 {dayEvents.slice(0, 4).map((ev, ei) => (
                   <motion.div
@@ -137,7 +156,7 @@ export default function WeekView({
             </button>
           );
         })}
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

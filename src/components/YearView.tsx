@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import { CalendarEvent, isToday, isSameDay } from "@/store/calendar";
 
 const MONTHS_SHORT = [
@@ -14,7 +14,6 @@ function getMonthDays(year: number, month: number): Date[][] {
   const weeks: Date[][] = [];
   let currentWeek: Date[] = [];
 
-  // Pad to Monday
   let startDay = first.getDay();
   if (startDay === 0) startDay = 7;
   for (let i = 1; i < startDay; i++) {
@@ -41,37 +40,59 @@ function getMonthDays(year: number, month: number): Date[][] {
 export default function YearView({
   year,
   events,
+  direction,
   onTapMonth,
+  onSwipeLeft,
+  onSwipeRight,
 }: {
   year: number;
   events: CalendarEvent[];
+  direction: number;
   onTapMonth: (month: number) => void;
+  onSwipeLeft: () => void;
+  onSwipeRight: () => void;
 }) {
   const today = new Date();
   const isCurrentYear = today.getFullYear() === year;
 
+  const variants = {
+    enter: (dir: number) => ({ x: dir > 0 ? "40%" : "-40%", opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? "-40%" : "40%", opacity: 0 }),
+  };
+
+  const handlePanEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (Math.abs(info.offset.x) > 60 && Math.abs(info.offset.x) > Math.abs(info.offset.y) * 2) {
+      if (info.offset.x < 0) onSwipeLeft();
+      else onSwipeRight();
+    }
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.05 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: "spring", stiffness: 350, damping: 32 }}
       className="h-full flex flex-col overflow-hidden"
     >
-      {/* Year title */}
       <div className="text-center py-2.5 shrink-0">
-        <p className="text-lg font-bold text-[var(--color-text-primary)]">
-          {year}
-        </p>
+        <p className="text-lg font-bold text-[var(--color-text-primary)]">{year}</p>
       </div>
 
-      {/* Month grid */}
-      <div className="flex-1 overflow-y-auto px-2">
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.1}
+        onPanEnd={handlePanEnd}
+        className="flex-1 overflow-y-auto px-2"
+      >
         <div className="grid grid-cols-3 gap-3">
           {MONTHS_SHORT.map((name, monthIdx) => {
             const weeks = getMonthDays(year, monthIdx);
-            const isCurrentMonth =
-              isCurrentYear && today.getMonth() === monthIdx;
+            const isCurrentMonth = isCurrentYear && today.getMonth() === monthIdx;
 
             return (
               <button
@@ -85,34 +106,25 @@ export default function YearView({
               >
                 <p
                   className={`text-xs font-semibold mb-1.5 ${
-                    isCurrentMonth
-                      ? "text-[var(--color-accent)]"
-                      : "text-[var(--color-text-secondary)]"
+                    isCurrentMonth ? "text-[var(--color-accent)]" : "text-[var(--color-text-secondary)]"
                   }`}
                 >
                   {name}
                 </p>
 
-                {/* Mini week headers */}
                 <div className="grid grid-cols-7 gap-0 mb-0.5">
                   {["L","M","M","G","V","S","D"].map((h, i) => (
-                    <span
-                      key={i}
-                      className="text-[7px] text-[var(--color-text-tertiary)]/40 text-center font-medium"
-                    >
+                    <span key={i} className="text-[7px] text-[var(--color-text-tertiary)]/40 text-center font-medium">
                       {h}
                     </span>
                   ))}
                 </div>
 
-                {/* Mini days */}
                 {weeks.map((week, wi) => (
                   <div key={wi} className="grid grid-cols-7 gap-0">
                     {week.map((d, di) => {
                       const isDay = d.getMonth() === monthIdx;
-                      const hasEvents = events.some((e) =>
-                        isSameDay(new Date(e.start_time), d)
-                      );
+                      const hasEvents = events.some((e) => isSameDay(new Date(e.start_time), d));
                       return (
                         <span
                           key={di}
@@ -136,7 +148,7 @@ export default function YearView({
             );
           })}
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

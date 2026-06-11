@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, PanInfo } from "framer-motion";
 import {
   CalendarEvent,
   getEventsForDay,
@@ -28,59 +28,64 @@ function getColor(idx: number) {
 export default function DayView({
   date,
   events,
+  direction,
   onTapEvent,
-  onPinchOut,
+  onSwipeLeft,
+  onSwipeRight,
 }: {
   date: Date;
   events: CalendarEvent[];
+  direction: number;
   onTapEvent: (id: number) => void;
-  onPinchOut: () => void;
+  onSwipeLeft: () => void;
+  onSwipeRight: () => void;
 }) {
   const dayEvents = getEventsForDay(events, date);
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const nowY = (nowMinutes / (24 * 60)) * 100; // percentage
 
-  const dayLabel = date.toLocaleDateString("it", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const variants = {
+    enter: (dir: number) => ({ x: dir > 0 ? "40%" : "-40%", opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir > 0 ? "-40%" : "40%", opacity: 0 }),
+  };
 
-  const { onTouchStart, onTouchMove, onTouchEnd } = {
-    onTouchStart: (e: React.TouchEvent) => {
-      if (e.touches.length >= 2) {
-        // pinch detection handled by parent wrapper — this is fallback
-      }
-    },
-    onTouchMove: () => {},
-    onTouchEnd: () => {},
+  const handlePanEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (Math.abs(info.offset.x) > 60 && Math.abs(info.offset.x) > Math.abs(info.offset.y) * 2) {
+      if (info.offset.x < 0) onSwipeLeft();
+      else onSwipeRight();
+    }
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.05 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: "spring", stiffness: 350, damping: 32 }}
       className="h-full flex flex-col overflow-hidden"
     >
       {/* Day header */}
       <div className="text-center py-3 shrink-0">
         <p className="text-sm font-semibold text-[var(--color-text-secondary)] capitalize">
-          {dayLabel}
+          {date.toLocaleDateString("it", { weekday: "long", day: "numeric", month: "long" })}
         </p>
         {isToday && (
-          <p className="text-[11px] text-[var(--color-accent)] mt-0.5 font-medium">
-            Oggi
-          </p>
+          <p className="text-[11px] text-[var(--color-accent)] mt-0.5 font-medium">Oggi</p>
         )}
       </div>
 
-      {/* Timeline */}
-      <div className="flex-1 overflow-y-auto relative px-2">
-        {/* Hour grid */}
+      {/* Timeline — draggable for swipe */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.1}
+        onPanEnd={handlePanEnd}
+        className="flex-1 overflow-y-auto relative px-2 touch-pan-y"
+      >
         <div className="relative" style={{ height: 24 * 60 + "px" }}>
           {HOURS.map((h) => (
             <div
@@ -95,7 +100,6 @@ export default function DayView({
             </div>
           ))}
 
-          {/* Events */}
           {dayEvents.map((ev, ei) => {
             const top = eventTop(ev);
             const h = eventHeight(ev);
@@ -116,26 +120,21 @@ export default function DayView({
                 }}
                 onClick={() => ev.id != null && onTapEvent(ev.id)}
               >
-                <div className="text-[11px] font-semibold leading-tight truncate">
-                  {ev.title}
-                </div>
+                <div className="text-[11px] font-semibold leading-tight truncate">{ev.title}</div>
                 <div className="text-[10px] opacity-70 leading-tight">
                   {formatTime(ev.start_time)} – {formatTime(ev.end_time)}
                 </div>
                 {ev.location && (
-                  <div className="text-[10px] opacity-50 leading-tight truncate mt-0.5">
-                    📍 {ev.location}
-                  </div>
+                  <div className="text-[10px] opacity-50 leading-tight truncate mt-0.5">📍 {ev.location}</div>
                 )}
               </motion.div>
             );
           })}
 
-          {/* Now line */}
           {isToday && nowMinutes >= 0 && nowMinutes < 24 * 60 && (
             <div
               className="absolute left-0 right-0 z-10 pointer-events-none"
-              style={{ top: nowY + "%" }}
+              style={{ top: (nowMinutes / (24 * 60)) * 100 + "%" }}
             >
               <div className="flex items-center">
                 <div className="w-2 h-2 rounded-full bg-[var(--color-danger)] -ml-1" />
@@ -144,12 +143,12 @@ export default function DayView({
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Pinch hint */}
-      <div className="text-center py-1.5 shrink-0">
+      <div className="text-center py-1.5 shrink-0 pointer-events-none">
         <p className="text-[10px] text-[var(--color-text-tertiary)]/50">
-          pizzica per tornare alla settimana
+          ← swipe → giorno · pizzica per settimana
         </p>
       </div>
     </motion.div>
