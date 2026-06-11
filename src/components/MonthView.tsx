@@ -57,7 +57,7 @@ export default function MonthView({
       <div className="text-center py-2.5 shrink-0">
         <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{MONTHS_IT[month]} {year}</p>
       </div>
-      <div className="grid grid-cols-7 px-1 pb-1 shrink-0">
+      <div className="grid grid-cols-7 px-2 pb-1.5 shrink-0">
         {DAY_HEADERS.map((h,i) => (
           <div key={i} className={`text-center text-[10px] font-bold tracking-wider ${i>=5?"text-[var(--color-text-tertiary)]/40":"text-[var(--color-text-tertiary)]"}`}>{h}</div>
         ))}

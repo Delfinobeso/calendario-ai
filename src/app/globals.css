@@ -6,7 +6,6 @@
   --color-surface-secondary: oklch(0.18 0.02 95);
   --color-surface-tertiary: oklch(0.24 0.02 95);
   --color-accent: oklch(0.80 0.19 100);
-  --color-accent-hover: oklch(0.76 0.20 96);
   --color-text-primary: oklch(0.96 0.01 95);
   --color-text-secondary: oklch(0.68 0.02 95);
   --color-text-tertiary: oklch(0.48 0.02 95);
@@ -18,23 +17,30 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
+  /* iPhone 17 Pro: Dynamic Island ~59pt, home indicator ~34pt */
+  --header-height: calc(44px + var(--sat));
 }
 
 * {
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
+  /* iOS continuous corner approximation */
+  -webkit-mask-image: none;
 }
 
 html {
   background: var(--color-surface);
   color: var(--color-text-primary);
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
   overflow: hidden;
   height: 100%;
+  /* Prevent iOS elastic bounce */
+  position: fixed;
+  width: 100%;
 }
 
 body {
@@ -42,48 +48,56 @@ body {
   padding: 0;
   height: 100%;
   overflow: hidden;
+  /* iOS safe area aware */
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
 }
 
 /* Hide scrollbars, keep 120Hz momentum */
 ::-webkit-scrollbar { width: 0; height: 0; }
 
-/* GPU-accelerated scroll containers */
+/* GPU layer helpers */
 .gpu-scroll {
   -webkit-overflow-scrolling: touch;
   overflow-scrolling: touch;
   transform: translateZ(0);
   will-change: scroll-position;
 }
-
-/* GPU layer for animated containers */
 .gpu-layer {
   transform: translateZ(0);
   backface-visibility: hidden;
   will-change: transform, opacity;
 }
 
-/* Safe area */
+/* Safe area utilities */
 .pt-safe { padding-top: var(--sat); }
 .pb-safe { padding-bottom: max(20px, var(--sab)); }
-
 .notch-top { padding-top: calc(var(--sat) + 8px); }
 
+/* iOS frosted glass */
 .sheet-blur {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 
-.today-pulse {
-  animation: todayPulse 2s ease-in-out infinite;
-}
+/* Today indicator pulse */
+.today-pulse { animation: todayPulse 2s ease-in-out infinite; }
 @keyframes todayPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
 }
 
+/* ---- Touch targets: minimum 44pt for iOS ---- */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Native date/time inputs dark mode */
 input[type="date"], input[type="time"] {
   color-scheme: dark;
   -webkit-appearance: none;
+  min-height: 44px;
 }
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
@@ -93,3 +107,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 ::placeholder { color: var(--color-text-tertiary); opacity: 0.6; }
 input:focus-visible { outline: none; }
 ::selection { background: var(--color-accent); color: black; }
+
+/* iOS sheet continuous corner (top only) */
+.sheet-top {
+  border-radius: 20px 20px 0 0;
+}

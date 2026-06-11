@@ -43,13 +43,13 @@ export default function WeekView({
   return (
     <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
       transition={{ duration: 0.2, ease: "easeOut" }} className="h-full flex flex-col overflow-hidden">
-      <div className="flex px-3 pb-1.5 shrink-0">
+      <div className="flex px-4 pb-2 shrink-0">
         {WEEKDAY_LABELS.map((l,i) => (
           <div key={l} className={`flex-1 text-center text-[11px] font-bold tracking-wider ${i>=5?"text-[var(--color-text-tertiary)]/50":"text-[var(--color-text-tertiary)]"}`}>{l}</div>
         ))}
       </div>
 
-      <motion.div onPan={handlePan} className="flex-1 flex px-3 gap-1.5 min-h-0 gpu-layer">
+      <motion.div onPan={handlePan} className="flex-1 flex px-4 gap-1.5 min-h-0 gpu-layer">
         {dates.map((date, idx) => {
           const dayEvents = getEventsForDay(events, date);
           const todayCheck = isToday(date);

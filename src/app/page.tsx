@@ -194,19 +194,14 @@ export default function Home() {
   return (
     <div className="h-dvh flex flex-col bg-[var(--color-surface)] overflow-hidden" {...pinch}>
       {/* ── Header ── */}
-      <header className="notch-top px-5 pb-2 shrink-0">
-        <div className="flex items-baseline justify-between">
+      <header className="notch-top px-5 pt-1 pb-3 shrink-0">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-[22px] font-bold text-[var(--color-text-primary)] tracking-tight">Calendario</h1>
-              <span className="text-[10px] font-semibold text-[var(--color-text-tertiary)] bg-[var(--color-surface-secondary)] px-2 py-0.5 rounded-full uppercase">
-                {ZOOM_LABELS[zoom]}
-              </span>
-            </div>
-            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5 capitalize">{headerLabel}</p>
+            <h1 className="text-[28px] font-extrabold text-[var(--color-text-primary)] tracking-tight leading-tight">Calendario</h1>
+            <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5 capitalize">{headerLabel}</p>
           </div>
           {showToday && (
-            <button onClick={jumpToToday} className="text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-3 py-1.5 rounded-full active:scale-95 transition-transform">
+            <button onClick={jumpToToday} className="touch-target text-[13px] font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-4 py-2 rounded-full active:scale-95 transition-transform flex items-center">
               Oggi
             </button>
           )}
@@ -214,17 +209,17 @@ export default function Home() {
       </header>
 
       {/* ── AI Input ── */}
-      <div className="px-4 pb-3 shrink-0">
-        <div className="flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1.5 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
+      <div className="px-5 pb-3 shrink-0">
+        <div className="flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
           <span className="pl-3 text-base">✨</span>
           <input
-            className="flex-1 bg-transparent py-2.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
+            className="flex-1 bg-transparent py-3 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
             placeholder="es. martedì alle 21 saggio di danza"
             value={aiInput} onChange={(e) => setAiInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAISubmit()} enterKeyHint="go"
           />
           <button onClick={handleAISubmit} disabled={aiLoading || !aiInput.trim()}
-            className="px-4 py-2 bg-[var(--color-accent)] text-black font-semibold rounded-xl text-sm disabled:opacity-30 transition-opacity shrink-0 active:scale-95">
+            className="touch-target px-5 py-2.5 bg-[var(--color-accent)] text-black font-semibold rounded-xl text-[15px] disabled:opacity-30 transition-opacity shrink-0 active:scale-95">
             {aiLoading ? "···" : "Aggiungi"}
           </button>
         </div>
@@ -268,16 +263,16 @@ export default function Home() {
       </div>
 
       {/* ── Bottom bar ── */}
-      <div className="pb-safe px-5 pt-1 shrink-0 flex gap-3">
+      <div className="pb-safe px-5 pt-2 shrink-0 flex gap-3">
         {zoom !== "year" && (
-          <button onClick={zoomOut} className="flex-1 py-3 bg-[var(--color-surface-secondary)] rounded-2xl text-[var(--color-text-secondary)] text-sm font-medium active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5">
+          <button onClick={zoomOut} className="flex-1 touch-target py-3 bg-[var(--color-surface-secondary)] rounded-2xl text-[var(--color-text-secondary)] text-[15px] font-semibold active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5">
             <span className="text-base">🤏</span>
             {ZOOM_LABELS[zoom === "day" ? "week" : zoom === "week" ? "month" : "year"]}
           </button>
         )}
         <button onClick={openSheet}
-          className={`${zoom !== "year" ? "flex-[2]" : "flex-1"} py-3 bg-[var(--color-accent)] text-black rounded-2xl font-semibold text-[15px] active:scale-[0.98] transition-transform flex items-center justify-center gap-2`}>
-          <span className="text-lg leading-none">+</span> Nuovo evento
+          className={`${zoom !== "year" ? "flex-[2]" : "flex-1"} touch-target py-3.5 bg-[var(--color-accent)] text-black rounded-2xl font-bold text-[16px] active:scale-[0.98] transition-transform flex items-center justify-center gap-2`}>
+          <span className="text-xl leading-none">+</span> Nuovo evento
         </button>
       </div>
 
@@ -289,21 +284,21 @@ export default function Home() {
               className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeSheet} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-3xl px-5 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/50">
-              <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/30 rounded-full mx-auto mb-6" />
-              <h2 className="text-xl font-bold mb-5">Nuovo evento</h2>
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[15px]"
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
+              <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
+              <h2 className="text-[20px] font-bold mb-5">Nuovo evento</h2>
+              <form onSubmit={handleFormSubmit} className="space-y-3.5">
+                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[16px]"
                   placeholder="Titolo evento" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} autoFocus enterKeyHint="next" />
-                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
+                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
                   placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
                 <div className="flex gap-3">
-                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] outline-none text-[15px] color-scheme-dark"
+                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px] color-scheme-dark"
                     value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] outline-none text-[15px] color-scheme-dark"
+                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px] color-scheme-dark"
                     value={formTime} onChange={(e) => setFormTime(e.target.value)} />
                 </div>
-                <button type="submit" className="w-full bg-[var(--color-accent)] text-black font-semibold rounded-xl py-4 active:scale-[0.98] transition-transform text-[15px]">
+                <button type="submit" className="w-full bg-[var(--color-accent)] text-black font-bold rounded-xl py-4 active:scale-[0.98] transition-transform text-[16px]">
                   Aggiungi evento
                 </button>
               </form>
@@ -320,27 +315,27 @@ export default function Home() {
               className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeEdit} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-3xl px-5 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/50">
-              <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/30 rounded-full mx-auto mb-6" />
-              <h2 className="text-xl font-bold mb-5">Modifica evento</h2>
-              <form onSubmit={handleUpdate} className="space-y-4">
-                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[15px]"
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
+              <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
+              <h2 className="text-[20px] font-bold mb-5">Modifica evento</h2>
+              <form onSubmit={handleUpdate} className="space-y-3.5">
+                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[16px]"
                   placeholder="Titolo evento" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} autoFocus enterKeyHint="next" />
-                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
+                <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
                   placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
                 <div className="flex gap-3">
-                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] outline-none text-[15px] color-scheme-dark"
+                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px] color-scheme-dark"
                     value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3.5 text-[var(--color-text-primary)] outline-none text-[15px] color-scheme-dark"
+                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px] color-scheme-dark"
                     value={formTime} onChange={(e) => setFormTime(e.target.value)} />
                 </div>
                 <div className="flex gap-3">
                   <button type="button" onClick={handleDelete}
-                    className="flex-1 py-4 bg-[var(--color-danger)] text-white rounded-xl font-semibold text-[15px] active:scale-[0.98] transition-transform">
+                    className="flex-1 touch-target py-4 bg-[var(--color-danger)] text-white rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
                     Elimina
                   </button>
                   <button type="submit"
-                    className="flex-[2] py-4 bg-[var(--color-accent)] text-black rounded-xl font-semibold text-[15px] active:scale-[0.98] transition-transform">
+                    className="flex-[2] touch-target py-4 bg-[var(--color-accent)] text-black rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
                     Salva modifiche
                   </button>
                 </div>
