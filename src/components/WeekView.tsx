@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { motion, PanInfo } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   CalendarEvent, getWeekDates, isToday, getEventsForDay, formatTime,
 } from "@/store/calendar";
@@ -24,7 +24,6 @@ export default function WeekView({
   const dates = getWeekDates(weekStart);
   const todayRef = useRef<HTMLButtonElement>(null);
   const now = new Date();
-  const day = now.getDay();
   const mon = (d => { d.setDate(d.getDate() + (d.getDay()===0?-6:1-d.getDay())); return d; })(new Date(now));
   const isCurrentWeek = weekStart.toDateString() === mon.toDateString();
 
@@ -33,9 +32,9 @@ export default function WeekView({
   const isZoom = direction === 0;
   const variants = isZoom
     ? { enter:{opacity:0,scale:.95}, center:{opacity:1,scale:1}, exit:{opacity:0,scale:1.05} }
-    : { enter:(d:number)=>({x:d>0?"40%":"-40%",opacity:0}), center:{x:0,opacity:1}, exit:(d:number)=>({x:d>0?"-40%":"40%",opacity:0}) };
+    : { enter:(d:number)=>({x:d>0?"-40%":"40%",opacity:0}), center:{x:0,opacity:1}, exit:(d:number)=>({x:d>0?"40%":"-40%",opacity:0}) };
 
-  const handlePanEnd = (_: unknown, info: PanInfo) => {
+  const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
     if (Math.abs(info.offset.x) > 50 && Math.abs(info.offset.x) > Math.abs(info.offset.y) * 2) {
       info.offset.x < 0 ? onSwipeLeft() : onSwipeRight();
     }
@@ -43,15 +42,14 @@ export default function WeekView({
 
   return (
     <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
-      transition={{ type: "tween", duration: 0.2, ease: "easeOut" }} className="h-full flex flex-col overflow-hidden">
+      transition={{ duration: 0.2, ease: "easeOut" }} className="h-full flex flex-col overflow-hidden">
       <div className="flex px-3 pb-1.5 shrink-0">
         {WEEKDAY_LABELS.map((l,i) => (
           <div key={l} className={`flex-1 text-center text-[11px] font-bold tracking-wider ${i>=5?"text-[var(--color-text-tertiary)]/50":"text-[var(--color-text-tertiary)]"}`}>{l}</div>
         ))}
       </div>
 
-      <motion.div drag="x" dragConstraints={{left:0,right:0}} dragElastic={0.1} onPanEnd={handlePanEnd}
-        className="flex-1 flex px-3 gap-1.5 min-h-0">
+      <motion.div onPan={handlePan} className="flex-1 flex px-3 gap-1.5 min-h-0">
         {dates.map((date, idx) => {
           const dayEvents = getEventsForDay(events, date);
           const todayCheck = isToday(date);

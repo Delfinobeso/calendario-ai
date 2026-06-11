@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, PanInfo } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   CalendarEvent,
   getEventsForDay,
@@ -37,9 +37,11 @@ export default function DayView({
   const isZoom = direction === 0;
   const variants = isZoom
     ? { enter: { opacity: 0, scale: 0.95 }, center: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } }
-    : { enter: (d: number) => ({ x: d > 0 ? "40%" : "-40%", opacity: 0 }), center: { x: 0, opacity: 1 }, exit: (d: number) => ({ x: d > 0 ? "-40%" : "40%", opacity: 0 }) };
+    // next (d<0): enter from right, exit to left. prev (d>0): enter from left, exit to right
+    : { enter: (d: number) => ({ x: d > 0 ? "-40%" : "40%", opacity: 0 }), center: { x: 0, opacity: 1 }, exit: (d: number) => ({ x: d > 0 ? "40%" : "-40%", opacity: 0 }) };
 
-  const handlePanEnd = (_: unknown, info: PanInfo) => {
+  // onPan detects swipe without moving the element (no drag bounce)
+  const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
     if (Math.abs(info.offset.x) > 50 && Math.abs(info.offset.x) > Math.abs(info.offset.y) * 2) {
       info.offset.x < 0 ? onSwipeLeft() : onSwipeRight();
     }
@@ -47,7 +49,7 @@ export default function DayView({
 
   return (
     <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
-      transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className="h-full flex flex-col overflow-hidden">
       <div className="text-center py-3 shrink-0">
         <p className="text-sm font-semibold text-[var(--color-text-secondary)] capitalize">
@@ -56,7 +58,7 @@ export default function DayView({
         {isToday && <p className="text-[11px] text-[var(--color-accent)] mt-0.5 font-medium">Oggi</p>}
       </div>
 
-      <motion.div drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.1} onPanEnd={handlePanEnd}
+      <motion.div onPan={handlePan}
         className="flex-1 overflow-y-auto relative px-2 touch-pan-y">
         <div className="relative" style={{ height: 24 * 60 + "px" }}>
           {HOURS.map((h) => (
@@ -85,9 +87,6 @@ export default function DayView({
           )}
         </div>
       </motion.div>
-      <div className="text-center py-1.5 shrink-0 pointer-events-none">
-        <p className="text-[10px] text-[var(--color-text-tertiary)]/50">← swipe → giorno · pizzica per settimana</p>
-      </div>
     </motion.div>
   );
 }

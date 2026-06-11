@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, PanInfo } from "framer-motion";
+import { motion } from "framer-motion";
 import { CalendarEvent, isToday, isSameDay } from "@/store/calendar";
 
 const MONTHS_IT = [
@@ -38,14 +38,13 @@ export default function MonthView({
   const today = new Date();
   const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
 
-  // direction=0 → scale (zoom), else → vertical slide
   const isZoom = direction === 0;
   const variants = isZoom
     ? { enter: { opacity: 0, scale: 0.95 }, center: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } }
+    // next (d<0): enter from below, exit to above. prev (d>0): enter from above, exit to below
     : { enter: (d: number) => ({ y: d > 0 ? "-50%" : "50%", opacity: 0 }), center: { y: 0, opacity: 1 }, exit: (d: number) => ({ y: d > 0 ? "50%" : "-50%", opacity: 0 }) };
 
-  // Vertical swipe: up → next month (swipeUp), down → prev month (swipeDown)
-  const handlePanEnd = (_: unknown, info: PanInfo) => {
+  const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
     if (Math.abs(info.offset.y) > 50 && Math.abs(info.offset.y) > Math.abs(info.offset.x) * 2) {
       info.offset.y < 0 ? onSwipeUp() : onSwipeDown();
     }
@@ -53,7 +52,7 @@ export default function MonthView({
 
   return (
     <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
-      transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className="h-full flex flex-col overflow-hidden">
       <div className="text-center py-2.5 shrink-0">
         <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{MONTHS_IT[month]} {year}</p>
@@ -64,8 +63,7 @@ export default function MonthView({
         ))}
       </div>
 
-      <motion.div drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.1} onPanEnd={handlePanEnd}
-        className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0">
+      <motion.div onPan={handlePan} className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0">
         {days.map((date, idx) => {
           const dayEvents = events.filter(e => isSameDay(new Date(e.start_time), date));
           const inMonth = date.getMonth() === month;

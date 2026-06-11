@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, PanInfo } from "framer-motion";
+import { motion } from "framer-motion";
 import { CalendarEvent, isToday, isSameDay } from "@/store/calendar";
 
 const MONTHS_SHORT = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
@@ -42,7 +42,7 @@ export default function YearView({
     ? { enter: { opacity: 0, scale: 0.95 }, center: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } }
     : { enter: (d: number) => ({ y: d > 0 ? "-50%" : "50%", opacity: 0 }), center: { y: 0, opacity: 1 }, exit: (d: number) => ({ y: d > 0 ? "50%" : "-50%", opacity: 0 }) };
 
-  const handlePanEnd = (_: unknown, info: PanInfo) => {
+  const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
     if (Math.abs(info.offset.y) > 50 && Math.abs(info.offset.y) > Math.abs(info.offset.x) * 2) {
       info.offset.y < 0 ? onSwipeUp() : onSwipeDown();
     }
@@ -50,14 +50,13 @@ export default function YearView({
 
   return (
     <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
-      transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className="h-full flex flex-col overflow-hidden">
       <div className="text-center py-2.5 shrink-0">
         <p className="text-lg font-bold text-[var(--color-text-primary)]">{year}</p>
       </div>
 
-      <motion.div drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={0.1} onPanEnd={handlePanEnd}
-        className="flex-1 overflow-y-auto px-2">
+      <motion.div onPan={handlePan} className="flex-1 overflow-y-auto px-2">
         <div className="grid grid-cols-3 gap-3">
           {MONTHS_SHORT.map((name, monthIdx) => {
             const weeks = getMonthDays(year, monthIdx);
