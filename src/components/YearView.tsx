@@ -56,7 +56,7 @@ export default function YearView({
         <p className="text-lg font-bold text-[var(--color-text-primary)]">{year}</p>
       </div>
 
-      <motion.div onPan={handlePan} className="flex-1 overflow-y-auto px-2">
+      <motion.div onPan={handlePan} className="flex-1 overflow-y-auto gpu-scroll px-2">
         <div className="grid grid-cols-3 gap-3">
           {MONTHS_SHORT.map((name, monthIdx) => {
             const weeks = getMonthDays(year, monthIdx);

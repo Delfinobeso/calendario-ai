@@ -59,7 +59,7 @@ export default function DayView({
       </div>
 
       <motion.div onPan={handlePan}
-        className="flex-1 overflow-y-auto relative px-2 touch-pan-y">
+        className="flex-1 overflow-y-auto gpu-scroll relative px-2 touch-pan-y">
         <div className="relative" style={{ height: 24 * 60 + "px" }}>
           {HOURS.map((h) => (
             <div key={h} className="absolute left-0 right-0 flex items-start" style={{ top: h * 60, height: 60 }}>

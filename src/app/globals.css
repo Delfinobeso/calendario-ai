@@ -44,71 +44,52 @@ body {
   overflow: hidden;
 }
 
-/* Hide scrollbars but keep functionality */
-::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+/* Hide scrollbars, keep 120Hz momentum */
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* GPU-accelerated scroll containers */
+.gpu-scroll {
+  -webkit-overflow-scrolling: touch;
+  overflow-scrolling: touch;
+  transform: translateZ(0);
+  will-change: scroll-position;
 }
 
-/* Safe area utilities */
-.pt-safe {
-  padding-top: var(--sat);
-}
-.pb-safe {
-  padding-bottom: max(20px, var(--sab));
-}
-
-/* Dynamic Island notch-aware */
-.notch-top {
-  padding-top: calc(var(--sat) + 8px);
+/* GPU layer for animated containers */
+.gpu-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
-/* Sheet backdrop with frosted glass */
+/* Safe area */
+.pt-safe { padding-top: var(--sat); }
+.pb-safe { padding-bottom: max(20px, var(--sab)); }
+
+.notch-top { padding-top: calc(var(--sat) + 8px); }
+
 .sheet-blur {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 
-/* Today indicator pulse */
 .today-pulse {
   animation: todayPulse 2s ease-in-out infinite;
 }
 @keyframes todayPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
-/* Native date/time inputs dark mode */
-input[type="date"],
-input[type="time"] {
+input[type="date"], input[type="time"] {
   color-scheme: dark;
   -webkit-appearance: none;
 }
-
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.8);
-  opacity: 0.6;
+  filter: invert(0.8); opacity: 0.6;
 }
 
-/* Input placeholder styling */
-::placeholder {
-  color: var(--color-text-tertiary);
-  opacity: 0.6;
-}
-
-/* Focus ring for accessibility */
-input:focus-visible {
-  outline: none;
-}
-
-/* Selection color */
-::selection {
-  background: var(--color-accent);
-  color: black;
-}
+::placeholder { color: var(--color-text-tertiary); opacity: 0.6; }
+input:focus-visible { outline: none; }
+::selection { background: var(--color-accent); color: black; }

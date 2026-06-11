@@ -63,7 +63,7 @@ export default function MonthView({
         ))}
       </div>
 
-      <motion.div onPan={handlePan} className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0">
+      <motion.div onPan={handlePan} className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0 gpu-layer">
         {days.map((date, idx) => {
           const dayEvents = events.filter(e => isSameDay(new Date(e.start_time), date));
           const inMonth = date.getMonth() === month;

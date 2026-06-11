@@ -49,7 +49,7 @@ export default function WeekView({
         ))}
       </div>
 
-      <motion.div onPan={handlePan} className="flex-1 flex px-3 gap-1.5 min-h-0">
+      <motion.div onPan={handlePan} className="flex-1 flex px-3 gap-1.5 min-h-0 gpu-layer">
         {dates.map((date, idx) => {
           const dayEvents = getEventsForDay(events, date);
           const todayCheck = isToday(date);

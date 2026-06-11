@@ -205,7 +205,7 @@ export default function Home() {
       </div>
 
       {/* ── Zoom view ── */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden gpu-layer">
         <AnimatePresence mode="wait" custom={swipeDir}>
           {zoom === "year" && (
             <YearView
