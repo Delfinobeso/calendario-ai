@@ -11,6 +11,7 @@ interface UIStore {
   deleteConfirm: number | null;
   editEvent: CalendarEvent | null;
   detailEvent: CalendarEvent | null;
+  error: string | null;
   setAiInput: (v: string) => void;
   setAiLoading: (v: boolean) => void;
   setAiResult: (v: string | null) => void;
@@ -21,6 +22,7 @@ interface UIStore {
   closeEdit: () => void;
   openDetail: (event: CalendarEvent) => void;
   closeDetail: () => void;
+  setError: (msg: string | null) => void;
 }
 
 export const useUI = create<UIStore>((set) => ({
@@ -31,6 +33,7 @@ export const useUI = create<UIStore>((set) => ({
   deleteConfirm: null,
   editEvent: null,
   detailEvent: null,
+  error: null,
   setAiInput: (v) => set({ aiInput: v }),
   setAiLoading: (v) => set({ aiLoading: v }),
   setAiResult: (v) => set({ aiResult: v }),
@@ -41,4 +44,5 @@ export const useUI = create<UIStore>((set) => ({
   closeEdit: () => set({ editEvent: null }),
   openDetail: (event) => set({ detailEvent: event }),
   closeDetail: () => set({ detailEvent: null }),
+  setError: (msg) => set({ error: msg }),
 }));

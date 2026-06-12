@@ -1,21 +1,21 @@
 import { CalendarEvent } from "@/store/calendar";
 
-export const HOUR_HEIGHT = 60;
-export const GAP_HEIGHT = 32;
-
-export const COLORS = ["#c9a820", "#e04080", "#20c0a0", "#6c5ce7", "#e17055"];
-export function getColor(idx: number) {
+// ── Single source of truth for event colors ──
+// Apple Calendar-style: vibrant but distinguishable, WCAG AA on dark bg
+export const COLORS = ["#51b1e7", "#f5a623", "#7ed321", "#e04080", "#6c5ce7"] as const;
+export function getColor(idx: number): string {
   return COLORS[idx % COLORS.length];
 }
+
+export const HOUR_HEIGHT = 60;
+export const GAP_HEIGHT = 32;
 
 export type Segment =
   | { type: "hour"; hour: number; height: number }
   | { type: "gap"; hours: number[]; height: number };
 
-// Builds a per-hour timeline where hours with no nearby events (and not the
-// current hour) collapse into a single small divider, so empty hours don't
-// waste vertical space while the timeline still spans 00–23.
-export function buildSegments(dayEvents: CalendarEvent[], includeHour: number | null): Segment[] {
+/** Build compressed timeline: hours near events stay tall, empty hours collapse */
+export function buildSegments(dayEvents: CalendarEvent[], currentHour: number | null): Segment[] {
   const anchors = new Set<number>();
   for (const ev of dayEvents) {
     const s = new Date(ev.start_time);
@@ -24,7 +24,7 @@ export function buildSegments(dayEvents: CalendarEvent[], includeHour: number | 
     const eh = Math.max(sh, e.getHours());
     for (let h = Math.max(0, sh - 1); h <= Math.min(23, eh + 1); h++) anchors.add(h);
   }
-  if (includeHour !== null) anchors.add(includeHour);
+  if (currentHour !== null) anchors.add(currentHour);
 
   const segments: Segment[] = [];
   let h = 0;
@@ -51,6 +51,7 @@ export function computeTops(segments: Segment[]): { tops: number[]; totalHeight:
   return { tops, totalHeight: acc };
 }
 
+/** Convert absolute minutes (0–1439) to Y position in compressed timeline */
 export function timeToY(segments: Segment[], tops: number[], totalMinutes: number): number {
   const hour = Math.min(23, Math.floor(totalMinutes / 60));
   const minuteFrac = (totalMinutes - hour * 60) / 60;

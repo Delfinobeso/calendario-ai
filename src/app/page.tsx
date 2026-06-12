@@ -10,7 +10,6 @@ import {
 } from "@/store/calendar";
 import { useUI } from "@/store/ui";
 import { useSettings } from "@/store/settings";
-import { parseLocally } from "@/lib/parser";
 import { usePinchZoom } from "@/hooks/usePinchZoom";
 
 import YearView from "@/components/YearView";
@@ -27,10 +26,7 @@ const MONTHS_IT = [
 ];
 
 const ZOOM_LABELS: Record<ZoomLevel, string> = {
-  year: "Anno",
-  month: "Mese",
-  week: "Settimana",
-  day: "Giorno",
+  year: "Anno", month: "Mese", week: "Settimana", day: "Giorno",
 };
 
 function formatEventDate(ev: CalendarEvent): string {
@@ -38,8 +34,48 @@ function formatEventDate(ev: CalendarEvent): string {
 }
 
 function formatEventTimeRange(ev: CalendarEvent): string {
-  if (ev.start_time === ev.end_time) return formatTime(ev.start_time);
-  return `${formatTime(ev.start_time)} – ${formatTime(ev.end_time)}`;
+  const start = formatTime(ev.start_time);
+  const end = formatTime(ev.end_time);
+  if (ev.start_time === ev.end_time || start === end) return start;
+  return `${start} – ${end}`;
+}
+
+// Round time up to nearest 30min, returns "HH:MM"
+function roundUp30(): string {
+  const now = new Date();
+  now.setSeconds(0, 0);
+  if (now.getMinutes() < 30) now.setMinutes(30);
+  else { now.setMinutes(0); now.setHours(now.getHours() + 1); }
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+function addHour(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const d = new Date(2026, 0, 1, h, m);
+  d.setHours(d.getHours() + 1);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// ── Shared form initial values ──
+function blankForm() {
+  return {
+    title: "", loc: "", desc: "",
+    date: new Date().toISOString().slice(0, 10),
+    startTime: roundUp30(),
+    endTime: addHour(roundUp30()),
+  };
+}
+
+function formFromEvent(ev: CalendarEvent) {
+  const s = new Date(ev.start_time);
+  return {
+    title: ev.title,
+    loc: ev.location || "",
+    desc: ev.description || "",
+    date: s.toISOString().slice(0, 10),
+    startTime: s.toTimeString().slice(0, 5),
+    endTime: formatTime(ev.end_time || ev.start_time),
+  };
 }
 
 export default function Home() {
@@ -50,6 +86,7 @@ export default function Home() {
     sheetOpen, openSheet, closeSheet,
     editEvent, openEdit, closeEdit,
     detailEvent, openDetail, closeDetail,
+    setError,
   } = useUI();
 
   const today = new Date();
@@ -67,10 +104,10 @@ export default function Home() {
     setSwipeDir(0);
     setZoom((z) => {
       switch (z) {
-        case "day":   return "week";
-        case "week":  return "month";
+        case "day": return "week";
+        case "week": return "month";
         case "month": return "year";
-        default:      return "year";
+        default: return "year";
       }
     });
   }, []);
@@ -82,10 +119,10 @@ export default function Home() {
     setSwipeDir(-1);
     const d = new Date(focusDate);
     switch (zoom) {
-      case "day":   d.setDate(d.getDate() + 1); break;
-      case "week":  d.setDate(d.getDate() + 7); break;
+      case "day": d.setDate(d.getDate() + 1); break;
+      case "week": d.setDate(d.getDate() + 7); break;
       case "month": d.setMonth(d.getMonth() + 1); break;
-      case "year":  d.setFullYear(d.getFullYear() + 1); break;
+      case "year": d.setFullYear(d.getFullYear() + 1); break;
     }
     setFocusDate(d);
   }, [zoom, focusDate]);
@@ -94,10 +131,10 @@ export default function Home() {
     setSwipeDir(1);
     const d = new Date(focusDate);
     switch (zoom) {
-      case "day":   d.setDate(d.getDate() - 1); break;
-      case "week":  d.setDate(d.getDate() - 7); break;
+      case "day": d.setDate(d.getDate() - 1); break;
+      case "week": d.setDate(d.getDate() - 7); break;
       case "month": d.setMonth(d.getMonth() - 1); break;
-      case "year":  d.setFullYear(d.getFullYear() - 1); break;
+      case "year": d.setFullYear(d.getFullYear() - 1); break;
     }
     setFocusDate(d);
   }, [zoom, focusDate]);
@@ -108,20 +145,18 @@ export default function Home() {
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
-  // Sync profile from backend (NAS) on mount
   const syncProfile = useSettings((s) => s.syncProfileFromBackend);
   useEffect(() => { syncProfile(); }, [syncProfile]);
 
   const headerLabel = useMemo(() => {
     switch (zoom) {
-      case "year":  return String(focusYear);
+      case "year": return String(focusYear);
       case "month": return `${MONTHS_IT[focusMonth]} ${focusYear}`;
       case "week": {
         const end = new Date(focusWeekStart);
         end.setDate(end.getDate() + 6);
-        if (focusWeekStart.getMonth() === end.getMonth()) {
+        if (focusWeekStart.getMonth() === end.getMonth())
           return `${MONTHS_IT[focusWeekStart.getMonth()]} ${focusWeekStart.getFullYear()}`;
-        }
         return `${focusWeekStart.getDate()} ${MONTHS_IT[focusWeekStart.getMonth()]} – ${end.getDate()} ${MONTHS_IT[end.getMonth()]}`;
       }
       case "day":
@@ -132,89 +167,112 @@ export default function Home() {
   const isCurrentWeek = zoom === "week" && focusWeekStart.toDateString() === currentWeekStart.toDateString();
   const isCurrentMonth = zoom === "month" && focusMonth === today.getMonth() && focusYear === today.getFullYear();
   const isCurrentYear = zoom === "year" && focusYear === today.getFullYear();
+  const showToday = (zoom === "week" && !isCurrentWeek) || (zoom === "month" && !isCurrentMonth) || (zoom === "year" && !isCurrentYear);
 
-  const showToday =
-    (zoom === "week" && !isCurrentWeek) ||
-    (zoom === "month" && !isCurrentMonth) ||
-    (zoom === "year" && !isCurrentYear);
-
-  const handleAISubmit = async () => {
-    if (!aiInput.trim()) return;
-    setAiLoading(true); setAiResult(null);
-    try {
-      const event = parseLocally(aiInput);
-      await addEvent(event);
-      setAiResult(`✅ "${event.title}" aggiunto`);
-      setAiInput("");
-    } catch { setAiResult("❌ Errore nel parsing"); }
-    setAiLoading(false);
-    setTimeout(() => setAiResult(null), 2500);
-  };
-
-  const [formTitle, setFormTitle] = useState("");
-  const [formLoc, setFormLoc] = useState("");
-  const [formDate, setFormDate] = useState("");
-  const [formTime, setFormTime] = useState("");
-  const [formDesc, setFormDesc] = useState("");
+  // ── Form state (single source, shared across sheets) ──
+  const [form, setForm] = useState(blankForm);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Reset form helpers
+  const resetForm = useCallback(() => setForm(blankForm()), []);
+  const closeAndResetSheet = useCallback(() => { resetForm(); closeSheet(); }, [resetForm, closeSheet]);
+  const closeAndResetEdit = useCallback(() => { setConfirmDelete(false); resetForm(); closeEdit(); }, [resetForm, closeEdit]);
+
   const handleOpenNewEvent = () => {
-    const now = new Date();
-    const rounded = new Date(now);
-    rounded.setSeconds(0, 0);
-    rounded.setMinutes(now.getMinutes() < 30 ? 30 : 0, 0, 0);
-    if (now.getMinutes() >= 30) rounded.setHours(rounded.getHours() + 1);
-    setFormDate(now.toISOString().slice(0, 10));
-    setFormTime(rounded.toTimeString().slice(0, 5));
-    setFormDesc("");
+    resetForm();
     openSheet();
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formTitle || !formDate || !formTime) return;
-    await addEvent({
-      title: formTitle, location: formLoc, description: formDesc,
-      start_time: `${formDate}T${formTime}:00`, end_time: `${formDate}T${formTime}:00`,
-      source: "manual",
-    });
-    setFormTitle(""); setFormLoc(""); setFormDate(""); setFormTime(""); setFormDesc("");
-    closeSheet();
+  // ── AI submit → backend /ai/parse ──
+  const handleAISubmit = async () => {
+    const text = aiInput.trim();
+    if (!text) return;
+    setAiLoading(true); setAiResult(null);
+    try {
+      const API = process.env.NEXT_PUBLIC_API_URL;
+      let parsed: { title: string; location?: string; description?: string; start_time: string; end_time: string } | null = null;
+
+      if (API) {
+        try {
+          const res = await fetch(`${API}/ai/parse`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+            signal: AbortSignal.timeout(8000),
+          });
+          if (res.ok) parsed = await res.json();
+        } catch { /* fallthrough to local */ }
+      }
+      if (!parsed) {
+        // Local fallback
+        const { parseLocally } = await import("@/lib/parser");
+        parsed = parseLocally(text);
+      }
+
+      await addEvent({
+        title: parsed.title,
+        location: parsed.location || "",
+        description: parsed.description || "",
+        start_time: parsed.start_time,
+        end_time: parsed.end_time,
+        source: "ai",
+      });
+      setAiResult(`✅ "${parsed.title}" aggiunto`);
+      setAiInput("");
+    } catch {
+      setAiResult("❌ Non riesco a capire la data. Prova: 'domani alle 15 riunione'");
+    }
+    setAiLoading(false);
+    setTimeout(() => setAiResult(null), 3000);
   };
 
+  // ── New event submit ──
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title || !form.date || !form.startTime) return;
+    try {
+      await addEvent({
+        title: form.title, location: form.loc, description: form.desc,
+        start_time: `${form.date}T${form.startTime}:00`,
+        end_time: `${form.date}T${form.endTime}:00`,
+        source: "manual",
+      });
+      closeAndResetSheet();
+    } catch {
+      setError("Errore nel salvare l'evento. Riprova.");
+    }
+  };
+
+  // ── Edit submit ──
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editEvent?.id || !formTitle || !formDate || !formTime) return;
-    await updateEvent(editEvent.id, {
-      title: formTitle,
-      location: formLoc,
-      description: formDesc,
-      start_time: `${formDate}T${formTime}:00`,
-      end_time: `${formDate}T${formTime}:00`,
-    });
-    setFormTitle(""); setFormLoc(""); setFormDate(""); setFormTime(""); setFormDesc("");
-    closeEdit();
+    if (!editEvent?.id || !form.title || !form.date || !form.startTime) return;
+    try {
+      await updateEvent(editEvent.id, {
+        title: form.title,
+        location: form.loc,
+        description: form.desc,
+        start_time: `${form.date}T${form.startTime}:00`,
+        end_time: `${form.date}T${form.endTime}:00`,
+      });
+      closeAndResetEdit();
+    } catch {
+      setError("Errore nell'aggiornare l'evento.");
+    }
   };
 
   const handleDelete = async () => {
     if (!editEvent?.id) return;
-    await removeEvent(editEvent.id);
-    setConfirmDelete(false);
-    closeEdit();
+    try {
+      await removeEvent(editEvent.id);
+      setConfirmDelete(false);
+      closeAndResetEdit();
+    } catch {
+      setError("Errore nell'eliminare l'evento.");
+    }
   };
 
-  const handleCloseEdit = useCallback(() => {
-    setConfirmDelete(false);
-    closeEdit();
-  }, [closeEdit]);
-
   const handleOpenEdit = useCallback((ev: CalendarEvent) => {
-    setFormTitle(ev.title);
-    setFormLoc(ev.location || "");
-    setFormDesc(ev.description || "");
-    const start = new Date(ev.start_time);
-    setFormDate(start.toISOString().slice(0, 10));
-    setFormTime(start.toTimeString().slice(0, 5));
+    setForm(formFromEvent(ev));
     setConfirmDelete(false);
     openEdit(ev);
   }, [openEdit]);
@@ -224,6 +282,13 @@ export default function Home() {
     closeDetail();
     handleOpenEdit(detailEvent);
   }, [detailEvent, closeDetail, handleOpenEdit]);
+
+  // ── Error toast ──
+  const errorToast = useUI((s) => s.error);
+  const clearError = useCallback(() => setError(null), [setError]);
+
+  // Sheet animation (always tween, no spring)
+  const sheetTransition = { type: "tween" as const, duration: 0.25, ease: [0.22, 0.61, 0.36, 1] as const };
 
   return (
     <div
@@ -240,7 +305,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-1">
             {showToday && (
-              <button onClick={jumpToToday} className="touch-target text-[13px] font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-4 py-2 rounded-full active:scale-95 transition-transform flex items-center">
+              <button onClick={jumpToToday} className="touch-target text-[13px] font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-4 py-2 rounded-full active:scale-95 transition-transform">
                 Oggi
               </button>
             )}
@@ -249,13 +314,13 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ── AI Input ── */}
+      {/* ── AI Input (Fantastical-style natural language) ── */}
       <div className="shrink-0 px-5 pb-2">
         <div className="flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
           <span className="pl-3 text-base">✨</span>
           <input
             className="flex-1 bg-transparent py-3 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
-            placeholder="es. martedì alle 21 saggio di danza"
+            placeholder="es. domani alle 15 riunione con Marco"
             value={aiInput} onChange={(e) => setAiInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAISubmit()} enterKeyHint="go"
           />
@@ -267,13 +332,15 @@ export default function Home() {
         <AnimatePresence>
           {aiResult && (
             <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="text-[var(--color-success)] text-xs mt-1.5 text-center font-medium">{aiResult}</motion.p>
+              className={`text-xs mt-1.5 text-center font-medium ${aiResult.startsWith("✅") ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>
+              {aiResult}
+            </motion.p>
           )}
         </AnimatePresence>
       </div>
 
       {/* ── Zoom view ── */}
-      <div className="flex-1 min-h-0 overflow-hidden gpu-layer">
+      <div className="flex-1 min-h-0 overflow-hidden gpu-layer" style={{ paddingBottom: 72 }}>
         <AnimatePresence mode="wait" custom={swipeDir}>
           {zoom === "year" && (
             <YearView
@@ -282,31 +349,24 @@ export default function Home() {
             />
           )}
           {zoom === "month" && (
-            <MonthView
-              key={`month-${focusYear}-${focusMonth}`} year={focusYear} month={focusMonth} events={events} direction={swipeDir}
-              onTapDay={zoomToDay} onSwipeDown={goPrev} onSwipeUp={goNext}
-            />
+            <MonthView key={`month-${focusYear}-${focusMonth}`} year={focusYear} month={focusMonth} events={events} direction={swipeDir}
+              onTapDay={zoomToDay} onTapEvent={openDetail} onSwipeDown={goPrev} onSwipeUp={goNext} />
           )}
           {zoom === "week" && (
-            <WeekView
-              key={`week-${focusWeekStart.toISOString()}`} weekStart={focusWeekStart} events={events} direction={swipeDir}
-              onTapDay={zoomToDay} onTapEvent={openDetail}
-              onSwipeLeft={goNext} onSwipeRight={goPrev}
-            />
+            <WeekView key={`w-${focusWeekStart.getTime()}`} weekStart={focusWeekStart} events={events} direction={swipeDir}
+              onTapDay={zoomToDay} onTapEvent={openDetail} onSwipeLeft={goNext} onSwipeRight={goPrev} />
           )}
           {zoom === "day" && (
-            <DayView
-              key={`day-${focusDate.toISOString()}`} date={focusDate} events={events} direction={swipeDir}
-              onTapEvent={openDetail} onSwipeLeft={goNext} onSwipeRight={goPrev}
-            />
+            <DayView key={`d-${focusDate.getTime()}`} date={focusDate} events={events} direction={swipeDir}
+              onTapEvent={openDetail} onSwipeLeft={goNext} onSwipeRight={goPrev} />
           )}
         </AnimatePresence>
       </div>
 
-      {/* ── Bottom bar ── */}
+      {/* ── Bottom bar (fixed over content) ── */}
       <div
-        className="shrink-0 px-4 pt-2 bg-[var(--color-surface)] border-t border-[var(--color-surface-tertiary)]/20"
-        style={{ paddingBottom: "calc(8px + var(--sab))" }}
+        className="fixed bottom-0 left-0 right-0 z-30 px-4 pt-2 bg-[var(--color-surface)] border-t border-[var(--color-surface-tertiary)]/20"
+        style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="flex gap-3 items-stretch">
           {zoom !== "year" && (
@@ -322,36 +382,48 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Add Event Sheet ── */}
+      {/* ═══════════════════════════════════════
+          SHEETS (all tween, no spring)
+          ═══════════════════════════════════════ */}
+
+      {/* ── New Event Sheet ── */}
       <AnimatePresence>
         {sheetOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeSheet} />
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeAndResetSheet} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
+              transition={sheetTransition}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[90vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
               <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
               <h2 className="text-[20px] font-bold mb-5">Nuovo evento</h2>
               <form onSubmit={handleFormSubmit} className="space-y-3.5">
                 <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[16px]"
-                  placeholder="Titolo evento" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} autoFocus enterKeyHint="next" />
+                  placeholder="Titolo evento" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} autoFocus />
                 <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
-                  placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
+                  placeholder="Luogo (opzionale)" value={form.loc} onChange={(e) => setForm((f) => ({ ...f, loc: e.target.value }))} />
                 <div className="flex gap-3">
                   <label className="flex-1 block">
                     <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
                     <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
-                      value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+                      value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
+                  </label>
+                </div>
+                <div className="flex gap-3">
+                  <label className="flex-1 block">
+                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Inizio</span>
+                    <input type="time" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
+                      value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
                   </label>
                   <label className="flex-1 block">
-                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Ora</span>
+                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Fine</span>
                     <input type="time" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
-                      value={formTime} onChange={(e) => setFormTime(e.target.value)} />
+                      value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
                   </label>
                 </div>
                 <textarea className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[16px] resize-none"
-                  placeholder="Descrizione (opzionale)" rows={3} value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
+                  placeholder="Descrizione (opzionale)" rows={3} value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} />
                 <button type="submit" className="w-full touch-target bg-[var(--color-accent)] text-black font-bold rounded-xl py-4 active:scale-[0.98] transition-transform text-[16px]">
                   Aggiungi evento
                 </button>
@@ -366,31 +438,39 @@ export default function Home() {
         {editEvent && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={handleCloseEdit} />
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeAndResetEdit} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
+              transition={sheetTransition}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[90vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
               <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
               <h2 className="text-[20px] font-bold mb-5">Modifica evento</h2>
               <form onSubmit={handleUpdate} className="space-y-3.5">
                 <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[16px]"
-                  placeholder="Titolo evento" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} autoFocus enterKeyHint="next" />
+                  placeholder="Titolo evento" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} autoFocus />
                 <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
-                  placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
+                  placeholder="Luogo (opzionale)" value={form.loc} onChange={(e) => setForm((f) => ({ ...f, loc: e.target.value }))} />
                 <div className="flex gap-3">
                   <label className="flex-1 block">
                     <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
                     <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
-                      value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+                      value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
+                  </label>
+                </div>
+                <div className="flex gap-3">
+                  <label className="flex-1 block">
+                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Inizio</span>
+                    <input type="time" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
+                      value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
                   </label>
                   <label className="flex-1 block">
-                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Ora</span>
+                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Fine</span>
                     <input type="time" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
-                      value={formTime} onChange={(e) => setFormTime(e.target.value)} />
+                      value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
                   </label>
                 </div>
                 <textarea className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[16px] resize-none"
-                  placeholder="Descrizione (opzionale)" rows={3} value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
+                  placeholder="Descrizione (opzionale)" rows={3} value={form.desc} onChange={(e) => setForm((f) => ({ ...f, desc: e.target.value }))} />
                 {!confirmDelete ? (
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setConfirmDelete(true)}
@@ -399,7 +479,7 @@ export default function Home() {
                     </button>
                     <button type="submit"
                       className="flex-[2] touch-target py-4 bg-[var(--color-accent)] text-black rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
-                      Salva modifiche
+                      Salva
                     </button>
                   </div>
                 ) : (
@@ -412,7 +492,7 @@ export default function Home() {
                       </button>
                       <button type="button" onClick={handleDelete}
                         className="flex-1 touch-target py-4 bg-[var(--color-danger)] text-white rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
-                        Conferma eliminazione
+                        Conferma
                       </button>
                     </div>
                   </div>
@@ -423,15 +503,15 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* ── Event Detail Sheet ── */}
+      {/* ── Detail Sheet ── */}
       <AnimatePresence>
         {detailEvent && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              transition={{ duration: 0.2 }}
               className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeDetail} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
+              transition={sheetTransition}
               className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
               <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
               <h2 className="text-[20px] font-bold mb-1 break-words">{detailEvent.title}</h2>
@@ -472,6 +552,19 @@ export default function Home() {
               </button>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Error toast ── */}
+      <AnimatePresence>
+        {errorToast && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-4 left-4 right-4 z-60 bg-[var(--color-danger)] text-white rounded-2xl px-5 py-3.5 text-[15px] font-semibold shadow-lg flex items-center justify-between"
+            style={{ top: "max(16px, env(safe-area-inset-top, 0px) + 8px)" }}>
+            <span>{errorToast}</span>
+            <button onClick={clearError} className="touch-target w-8 h-8 flex items-center justify-center text-white/80 active:scale-90 transition-transform">✕</button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

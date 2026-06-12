@@ -64,21 +64,26 @@ export const useCalendar = create<CalendarStore>((set) => ({
       set((s) => ({ events: [...s.events, local], todayEvents: [...s.todayEvents, local] }));
       return local;
     }
-    const created = await fetchAPI("/events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(event),
-    });
-    set((s) => ({
-      events: [...s.events, created],
-      todayEvents: [...s.todayEvents, created],
-    }));
-    return created;
+    try {
+      const created = await fetchAPI("/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+      });
+      set((s) => ({
+        events: [...s.events, created],
+        todayEvents: [...s.todayEvents, created],
+      }));
+      return created;
+    } catch {
+      throw new Error("Impossibile salvare l'evento. Verifica la connessione.");
+    }
   },
 
   removeEvent: async (id) => {
     if (API_BASE) {
-      await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
+      try { await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" }); }
+      catch { /* optimistic delete — already removed from state below */ }
     }
     set((s) => ({
       events: s.events.filter((e) => e.id !== id),
@@ -94,15 +99,19 @@ export const useCalendar = create<CalendarStore>((set) => ({
       }));
       return;
     }
-    const updated = await fetchAPI(`/events/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    set((s) => ({
-      events: s.events.map((e) => (e.id === id ? updated : e)),
-      todayEvents: s.todayEvents.map((e) => (e.id === id ? updated : e)),
-    }));
+    try {
+      const updated = await fetchAPI(`/events/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      set((s) => ({
+        events: s.events.map((e) => (e.id === id ? updated : e)),
+        todayEvents: s.todayEvents.map((e) => (e.id === id ? updated : e)),
+      }));
+    } catch {
+      throw new Error("Impossibile aggiornare l'evento.");
+    }
   },
 
   loadToday: async () => {

@@ -3,18 +3,20 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { CalendarEvent, isToday, isSameDay } from "@/store/calendar";
+import { getColor } from "@/lib/timeline";
 
 const MONTHS_IT = [
-  "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
-  "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre",
+  "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+  "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
 ];
-const DAY_HEADERS = ["L","M","M","G","V","S","D"];
+const DAY_HEADERS = ["LU", "MA", "ME", "GI", "VE", "SA", "DO"];
 
 function getDaysInMonth(year: number, month: number): Date[] {
   const days: Date[] = [];
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
-  let startDay = first.getDay(); if (startDay === 0) startDay = 7;
+  let startDay = first.getDay();
+  if (startDay === 0) startDay = 7;
   for (let i = 1; i < startDay; i++) days.push(new Date(year, month, 1 - (startDay - i)));
   for (let d = 1; d <= last.getDate(); d++) days.push(new Date(year, month, d));
   while (days.length < 42) {
@@ -24,15 +26,13 @@ function getDaysInMonth(year: number, month: number): Date[] {
   return days;
 }
 
-const COLORS = ["#c9a820","#e04080","#20c0a0","#6c5ce7","#e17055"];
-function getColor(i: number) { return COLORS[i % COLORS.length]; }
-
 export default function MonthView({
   year, month, events, direction,
-  onTapDay, onSwipeDown, onSwipeUp,
+  onTapDay, onTapEvent, onSwipeDown, onSwipeUp,
 }: {
   year: number; month: number; events: CalendarEvent[]; direction: number;
   onTapDay: (d: Date) => void;
+  onTapEvent: (ev: CalendarEvent) => void;
   onSwipeDown: () => void; onSwipeUp: () => void;
 }) {
   const days = getDaysInMonth(year, month);
@@ -42,16 +42,15 @@ export default function MonthView({
   const isZoom = direction === 0;
   const variants = isZoom
     ? { enter: { opacity: 0, scale: 0.95 }, center: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } }
-    // next (d<0): enter from below, exit to above. prev (d>0): enter from above, exit to below
     : { enter: (d: number) => ({ y: d > 0 ? "-50%" : "50%", opacity: 0 }), center: { y: 0, opacity: 1 }, exit: (d: number) => ({ y: d > 0 ? "50%" : "-50%", opacity: 0 }) };
 
   const swiped = useRef(false);
   const handlePanStart = () => { swiped.current = false; };
   const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
     if (swiped.current) return;
-    if (Math.abs(info.offset.y) > 50 && Math.abs(info.offset.y) > Math.abs(info.offset.x) * 2) {
+    if (Math.abs(info.offset.y) > 80 && Math.abs(info.offset.y) > Math.abs(info.offset.x) * 3) {
       swiped.current = true;
-      if (info.offset.y < 0) onSwipeUp(); else onSwipeDown();
+      info.offset.y < 0 ? onSwipeUp() : onSwipeDown();
     }
   };
 
@@ -63,14 +62,17 @@ export default function MonthView({
         <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{MONTHS_IT[month]} {year}</p>
       </div>
       <div className="grid grid-cols-7 px-2 pb-1.5 shrink-0">
-        {DAY_HEADERS.map((h,i) => (
-          <div key={i} className={`text-center text-[10px] font-bold tracking-wider ${i>=5?"text-[var(--color-text-tertiary)]/40":"text-[var(--color-text-tertiary)]"}`}>{h}</div>
+        {DAY_HEADERS.map((h, i) => (
+          <div key={i} className={`text-center text-[10px] font-bold tracking-wider ${i >= 5 ? "text-[var(--color-text-tertiary)]/40" : "text-[var(--color-text-tertiary)]"}`}>
+            {h}
+          </div>
         ))}
       </div>
 
-      <motion.div onPanStart={handlePanStart} onPan={handlePan} className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0 gpu-layer">
+      <motion.div onPanStart={handlePanStart} onPan={handlePan}
+        className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0 gpu-layer">
         {days.map((date, idx) => {
-          const dayEvents = events.filter(e => isSameDay(new Date(e.start_time), date));
+          const dayEvents = events.filter((e) => isSameDay(new Date(e.start_time), date));
           const inMonth = date.getMonth() === month;
           const todayCheck = isToday(date);
           return (
@@ -83,10 +85,21 @@ export default function MonthView({
                 : inMonth ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"}`}>
                 {date.getDate()}
               </span>
-              <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
-                {dayEvents.slice(0,3).map((ev,ei) => (
-                  <span key={ei} className="w-1.5 h-1.5 rounded-full shrink-0" style={{background:getColor(ei)}} />
+              {/* Event chips — tap opens detail (Google Calendar style) */}
+              <div className="flex flex-col gap-0.5 mt-0.5 w-full px-0.5 min-h-0">
+                {dayEvents.slice(0, 3).map((ev, ei) => (
+                  <button key={ei}
+                    onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }}
+                    className="w-full rounded-sm px-1 py-px text-[9px] font-semibold leading-tight truncate text-left active:opacity-70 transition-opacity"
+                    style={{ background: getColor(ei) + "22", color: getColor(ei) }}>
+                    {ev.title}
+                  </button>
                 ))}
+                {dayEvents.length > 3 && (
+                  <span className="text-[9px] text-[var(--color-text-tertiary)] text-center font-medium">
+                    +{dayEvents.length - 3}
+                  </span>
+                )}
               </div>
             </button>
           );
