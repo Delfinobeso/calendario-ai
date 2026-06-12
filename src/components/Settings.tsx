@@ -144,7 +144,7 @@ function Field({
 function ThemePicker({ selected, onChange }: { selected: Theme; onChange: (t: Theme) => void }) {
   const options: { key: Theme; label: string; icon: string }[] = [
     { key: "dark", label: "Scuro", icon: "🌙" },
-    { key: "light", label: "Crema", icon: "☀️" },
+    { key: "light", label: "Chiaro", icon: "☀️" },
     { key: "system", label: "Auto", icon: "⚙️" },
   ];
 

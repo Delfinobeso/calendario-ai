@@ -24,7 +24,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (meta) {
       meta.setAttribute(
         "content",
-        resolved === "dark" ? "#1a1c1e" : "#f7f4ef"
+        resolved === "dark" ? "#1b1b1b" : "#f7f7f7"
       );
     }
   }, [theme]);
