@@ -224,7 +224,7 @@ export default function Home() {
       </div>
 
       {/* ── Zoom view ── */}
-      <div className="flex-1 min-h-0 overflow-hidden gpu-layer" style={{ paddingBottom: "calc(72px + var(--sab))" }}>
+      <div className="flex-1 min-h-0 overflow-hidden gpu-layer">
         <AnimatePresence mode="wait" custom={swipeDir}>
           {zoom === "year" && (
             <YearView
@@ -256,7 +256,7 @@ export default function Home() {
 
       {/* ── Bottom bar ── */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-20 px-4 pt-2 bg-[var(--color-surface)] border-t border-[var(--color-surface-tertiary)]/20"
+        className="shrink-0 px-4 pt-2 bg-[var(--color-surface)] border-t border-[var(--color-surface-tertiary)]/20"
         style={{ paddingBottom: "calc(8px + var(--sab))" }}
       >
         <div className="flex gap-3 items-stretch">
