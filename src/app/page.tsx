@@ -8,6 +8,7 @@ import {
   type CalendarEvent,
 } from "@/store/calendar";
 import { useUI } from "@/store/ui";
+import { useSettings } from "@/store/settings";
 import { parseLocally } from "@/lib/parser";
 import { usePinchZoom } from "@/hooks/usePinchZoom";
 
@@ -95,6 +96,10 @@ export default function Home() {
   const pinch = usePinchZoom(zoomOut, 0.6);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  // Sync profile from backend (NAS) on mount
+  const syncProfile = useSettings((s) => s.syncProfileFromBackend);
+  useEffect(() => { syncProfile(); }, [syncProfile]);
 
   const headerLabel = useMemo(() => {
     switch (zoom) {

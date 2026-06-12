@@ -169,15 +169,19 @@ function ThemePicker({ selected, onChange }: { selected: Theme; onChange: (t: Th
 }
 
 function FontPicker({ selected, onChange }: { selected: Font; onChange: (f: Font) => void }) {
-  const options = Object.entries(FONT_LABELS) as [Font, string][];
+  const options: { key: Font; label: string }[] = [
+    { key: "sans", label: "Sans Serif" },
+    { key: "serif", label: "Serif" },
+    { key: "system", label: "System" },
+  ];
 
   return (
     <div className="flex gap-2">
-      {options.map(([key, label]) => (
+      {options.map(({ key, label }) => (
         <button
           key={key}
           onClick={() => onChange(key)}
-          className={`flex-1 py-2.5 rounded-xl font-semibold text-[14px] transition-all active:scale-[0.97] ${
+          className={`flex-1 py-3 rounded-xl font-semibold text-[15px] transition-all active:scale-[0.97] ${
             selected === key
               ? "bg-[var(--color-accent)] text-black"
               : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"

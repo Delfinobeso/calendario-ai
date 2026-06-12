@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type Theme = "dark" | "light" | "system";
-export type Font = "plus-jakarta" | "inter" | "dm-sans" | "system";
+export type Font = "sans" | "serif" | "system";
 export type Language = "it" | "en";
 
 export interface UserProfile {
@@ -21,42 +21,68 @@ interface SettingsStore {
   setFont: (f: Font) => void;
   setLanguage: (l: Language) => void;
   setProfile: (p: Partial<UserProfile>) => void;
+  syncProfileFromBackend: () => Promise<void>;
+  saveProfileToBackend: () => Promise<void>;
 }
 
 export const FONT_FAMILIES: Record<Font, string> = {
-  "plus-jakarta": "'Plus Jakarta Sans', -apple-system, system-ui, sans-serif",
-  inter: "'Inter', -apple-system, system-ui, sans-serif",
-  "dm-sans": "'DM Sans', -apple-system, system-ui, sans-serif",
+  sans: "'Plus Jakarta Sans', -apple-system, system-ui, sans-serif",
+  serif: "'Merriweather', Georgia, 'Times New Roman', serif",
   system: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
 };
 
 export const FONT_LABELS: Record<Font, string> = {
-  "plus-jakarta": "Plus Jakarta Sans",
-  inter: "Inter",
-  "dm-sans": "DM Sans",
+  sans: "Sans Serif",
+  serif: "Serif",
   system: "System",
 };
 
 export const FONT_GOOGLE: Record<Font, string | null> = {
-  "plus-jakarta": "Plus+Jakarta+Sans:wght@400;500;600;700;800",
-  inter: "Inter:wght@400;500;600;700;800",
-  "dm-sans": "DM+Sans:wght@400;500;600;700;800",
+  sans: "Plus+Jakarta+Sans:wght@400;500;600;700;800",
+  serif: "Merriweather:ital,wght@0,400;0,700;1,400",
   system: null,
 };
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+
 export const useSettings = create<SettingsStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       theme: "dark",
-      font: "plus-jakarta",
+      font: "sans",
       language: "it",
       profile: { name: "", role: "Geometra" },
 
       setTheme: (theme) => set({ theme }),
       setFont: (font) => set({ font }),
       setLanguage: (language) => set({ language }),
-      setProfile: (p) =>
-        set((s) => ({ profile: { ...s.profile, ...p } })),
+      setProfile: (p) => {
+        set((s) => ({ profile: { ...s.profile, ...p } }));
+        // Auto-save to backend after update
+        get().saveProfileToBackend();
+      },
+
+      syncProfileFromBackend: async () => {
+        if (!API_BASE) return;
+        try {
+          const res = await fetch(`${API_BASE}/profile`);
+          if (res.ok) {
+            const data = await res.json();
+            set({ profile: { name: data.name || "", role: data.role || "Geometra" } });
+          }
+        } catch { /* offline — keep localStorage */ }
+      },
+
+      saveProfileToBackend: async () => {
+        if (!API_BASE) return;
+        try {
+          await fetch(`${API_BASE}/profile`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(get().profile),
+          });
+        } catch { /* offline — localStorage only */ }
+      },
     }),
     {
       name: "calendario-settings",
