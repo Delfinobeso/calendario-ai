@@ -10,6 +10,10 @@ import { getColor } from "@/lib/timeline";
 const WEEKDAY_LABELS = ["LU", "MA", "ME", "GI", "VE", "SA", "DO"];
 const ROW_H = 24; // px per ora
 
+// L'app non viene mai smontata: una volta superata l'hydration sul client,
+// resta vera anche quando SwipeCarousel rimonta WeekView ad ogni swipe.
+let clientHydrated = false;
+
 export default function WeekView({
   weekStart, events,
   onTapDay, onTapEvent,
@@ -34,8 +38,8 @@ export default function WeekView({
     return i >= 5 ? 1.5 : 1.9;
   });
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const [mounted, setMounted] = useState(clientHydrated);
+  useEffect(() => { clientHydrated = true; setMounted(true); }, []);
 
   const mon = (d => { d.setDate(d.getDate() + (d.getDay() === 0 ? -6 : 1 - d.getDay())); return d; })(new Date(now));
   const isCurrentWeek = mounted && weekStart.toDateString() === mon.toDateString();
