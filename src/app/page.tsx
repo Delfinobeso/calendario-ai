@@ -139,6 +139,17 @@ export default function Home() {
   const [formDate, setFormDate] = useState("");
   const [formTime, setFormTime] = useState("");
 
+  const handleOpenNewEvent = () => {
+    const now = new Date();
+    const rounded = new Date(now);
+    rounded.setSeconds(0, 0);
+    rounded.setMinutes(now.getMinutes() < 30 ? 30 : 0, 0, 0);
+    if (now.getMinutes() >= 30) rounded.setHours(rounded.getHours() + 1);
+    setFormDate(now.toISOString().slice(0, 10));
+    setFormTime(rounded.toTimeString().slice(0, 5));
+    openSheet();
+  };
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle || !formDate || !formTime) return;
@@ -266,7 +277,7 @@ export default function Home() {
               {ZOOM_LABELS[zoom === "day" ? "week" : zoom === "week" ? "month" : "year"]}
             </button>
           )}
-          <button onClick={openSheet}
+          <button onClick={handleOpenNewEvent}
             className="flex-1 touch-target py-2.5 bg-[var(--color-accent)] text-black rounded-2xl font-bold text-[16px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
             <span className="text-lg leading-none">+</span> Nuovo evento
           </button>
@@ -290,10 +301,16 @@ export default function Home() {
                 <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
                   placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
                 <div className="flex gap-3">
-                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
-                    value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
-                    value={formTime} onChange={(e) => setFormTime(e.target.value)} />
+                  <label className="flex-1 block">
+                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
+                    <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
+                      value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+                  </label>
+                  <label className="flex-1 block">
+                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Ora</span>
+                    <input type="time" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
+                      value={formTime} onChange={(e) => setFormTime(e.target.value)} />
+                  </label>
                 </div>
                 <button type="submit" className="w-full bg-[var(--color-accent)] text-black font-bold rounded-xl py-4 active:scale-[0.98] transition-transform text-[16px]">
                   Aggiungi evento
@@ -321,10 +338,16 @@ export default function Home() {
                 <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
                   placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
                 <div className="flex gap-3">
-                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
-                    value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
-                    value={formTime} onChange={(e) => setFormTime(e.target.value)} />
+                  <label className="flex-1 block">
+                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
+                    <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
+                      value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+                  </label>
+                  <label className="flex-1 block">
+                    <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Ora</span>
+                    <input type="time" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
+                      value={formTime} onChange={(e) => setFormTime(e.target.value)} />
+                  </label>
                 </div>
                 <div className="flex gap-3">
                   <button type="button" onClick={handleDelete}
