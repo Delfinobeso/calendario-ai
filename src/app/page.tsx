@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useCalendar,
@@ -18,6 +18,7 @@ import MonthView from "@/components/MonthView";
 import WeekView from "@/components/WeekView";
 import Settings from "@/components/Settings";
 import DayView from "@/components/DayView";
+import VoiceInput from "@/components/VoiceInput";
 
 type ZoomLevel = "year" | "month" | "week" | "day";
 
@@ -164,60 +165,7 @@ export default function Home() {
   const closeAndResetEdit = useCallback(() => { setConfirmDelete(false); resetForm(); closeEdit(); }, [resetForm, closeEdit]);
   const handleOpenNewEvent = () => { resetForm(); openSheet(); };
 
-  // ── Audio recording ──
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-
-  const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus" : "audio/webm";
-      const recorder = new MediaRecorder(stream, { mimeType });
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        if (blob.size < 100) return;
-        setAiLoading(true); setAiResult(null);
-        try {
-          const API = process.env.NEXT_PUBLIC_API_URL;
-          const formData = new FormData();
-          formData.append("file", blob, "recording.webm");
-          const res = await fetch(`${API}/ai/parse-audio`, { method: "POST", body: formData, signal: AbortSignal.timeout(25000) });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.error) { setAiResult(`❌ ${data.error}`); }
-            else {
-              const parsed = data.event;
-              await addEvent({ title: parsed.title, location: parsed.location || "", description: parsed.description || "", start_time: parsed.start_time, end_time: parsed.end_time, source: "ai" });
-              const conflicts = data.conflicts || [];
-              if (conflicts.length) setAiResult(`⚠️ Conflitto con: ${conflicts.map((c: any) => c.title).join(", ")}. Aggiunto comunque.`);
-              else setAiResult(`🎙️ "${parsed.title}" aggiunto`);
-            }
-          } else { setAiResult("❌ Errore nella trascrizione."); }
-        } catch { setAiResult("❌ Timeout o errore di rete."); }
-        setAiLoading(false);
-        setTimeout(() => setAiResult(null), 4000);
-      };
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setIsRecording(true);
-    } catch {
-      setAiResult("❌ Microfono non disponibile.");
-      setTimeout(() => setAiResult(null), 3000);
-    }
-  }, [addEvent]);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  }, []);
-  const handleAISubmit = async () => {
+  // ── AI submit ──
     const text = aiInput.trim(); if (!text) return;
     setAiLoading(true); setAiResult(null);
     try {
@@ -273,29 +221,45 @@ export default function Home() {
 
       {/* AI Input */}
       <div className="shrink-0 px-5 pb-2">
-        <div className="flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
-          <span className="pl-3 text-base">✨</span>
-          <input className="flex-1 bg-transparent py-2.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
-            placeholder={isRecording ? "Registrando..." : "es. domani alle 15 riunione con Marco"} value={aiInput} onChange={e => setAiInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleAISubmit()} enterKeyHint="go" disabled={isRecording} />
-          {isRecording ? (
-            <button onClick={stopRecording}
-              className="touch-target w-10 h-10 flex items-center justify-center rounded-xl bg-red-500 text-white animate-pulse active:scale-95 shrink-0">
-              <span className="text-lg">■</span>
+        <div className="flex gap-2 items-center">
+          <div className="flex-1 flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
+            <span className="pl-3 text-base">✨</span>
+            <input
+              className="flex-1 bg-transparent py-2.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
+              placeholder="es. domani alle 15 riunione con Marco"
+              value={aiInput}
+              onChange={(e) => setAiInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAISubmit()}
+              enterKeyHint="go"
+            />
+            <button
+              onClick={handleAISubmit}
+              disabled={aiLoading || !aiInput.trim()}
+              className="touch-target px-4 py-2 bg-[var(--color-accent)] text-black font-semibold rounded-xl text-[14px] disabled:opacity-30 shrink-0 active:scale-95"
+            >
+              {aiLoading ? "···" : "Aggiungi"}
             </button>
-          ) : (
-            <button onClick={startRecording} aria-label="Registra audio"
-              className="touch-target w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--color-surface-tertiary)] text-[var(--color-text-secondary)] active:scale-95 shrink-0">
-              <span className="text-lg">🎤</span>
-            </button>
-          )}
-          <button onClick={handleAISubmit} disabled={aiLoading || !aiInput.trim()}
-            className="touch-target px-4 py-2 bg-[var(--color-accent)] text-black font-semibold rounded-xl text-[14px] disabled:opacity-30 shrink-0 active:scale-95">
-            {aiLoading ? "···" : "Aggiungi"}
-          </button>
+          </div>
+          <VoiceInput onEventAdded={() => {}} />
         </div>
-        <AnimatePresence>{aiResult && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-          className={`text-xs mt-1.5 text-center font-medium ${aiResult.startsWith("✅") || aiResult.startsWith("🎙️") ? "text-[var(--color-success)]" : aiResult.startsWith("⚠") ? "text-yellow-400" : "text-[var(--color-danger)]"}`}>{aiResult}</motion.p>}</AnimatePresence>
+        <AnimatePresence>
+          {aiResult && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={`text-xs mt-1.5 text-center font-medium ${
+                aiResult.startsWith("✅") || aiResult.startsWith("🎙️")
+                  ? "text-[var(--color-success)]"
+                  : aiResult.startsWith("⚠")
+                  ? "text-yellow-400"
+                  : "text-[var(--color-danger)]"
+              }`}
+            >
+              {aiResult}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── Main view area ── */}
