@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   CalendarEvent, getWeekDates, isToday, getEventsForDay, formatTime,
@@ -47,10 +47,17 @@ export default function WeekView({
   const TOTAL_H = 24 * ROW_H;
   const toY = (min: number) => (min / 60) * ROW_H;
 
+  // Scroll alle prime ore del pomeriggio: i 24h non entrano nel contenitore.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: Math.max(0, toY(nowMinutes) - 100), behavior: "auto" });
+  }, []); // eslint-disable-line
+
   return (
     <div className="h-full flex flex-col">
       {/* ── Day headers ── */}
       <div className="flex px-3 gap-1 shrink-0 pb-1">
+        <div className="w-5 shrink-0" />
         {dates.map((date, idx) => {
           const todayCheck = isToday(date) && isCurrentWeek;
           return (
@@ -70,14 +77,15 @@ export default function WeekView({
       </div>
 
       {/* ── Timeline grid ── */}
-      <div className="flex-1 flex px-3 gap-1 min-h-0 relative">
-        {/* Hour labels (overlay, left edge) */}
-        <div className="absolute left-1 top-0 bottom-0 w-5 pointer-events-none z-20">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto gpu-scroll touch-pan-y">
+      <div className="flex px-3 gap-1 relative" style={{ height: TOTAL_H }}>
+        {/* Hour labels */}
+        <div className="relative w-5 shrink-0 pointer-events-none">
           {Array.from({ length: 9 }, (_, i) => {
             const hr = i * 3;
             return (
               <span key={hr}
-                className="absolute right-0 text-[9px] text-[var(--color-text-tertiary)]/60 tabular-nums font-medium leading-none"
+                className="absolute right-0.5 text-[9px] text-[var(--color-text-tertiary)]/60 tabular-nums font-medium leading-none"
                 style={{ top: hr * ROW_H - 4 }}>
                 {hr}
               </span>
@@ -94,7 +102,7 @@ export default function WeekView({
           return (
             <div key={date.toISOString()}
               style={{ flexGrow: weights[idx], flexBasis: 0, minWidth: 22 }}
-              className="relative h-full">
+              className="relative">
               <button onClick={() => { if (!isPast) onTapDay(date); }}
                 className={`absolute inset-0 rounded-lg overflow-hidden transition-colors ${
                   todayCheck ? "bg-[var(--color-today)] ring-1 ring-[var(--color-accent)]/20 z-10"
@@ -125,15 +133,12 @@ export default function WeekView({
                     <motion.div key={ev.id || ei}
                       initial={false} animate={{ opacity: 1, scaleX: 1 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute left-0.5 right-0.5 rounded-md px-1 py-0.5 cursor-pointer overflow-hidden flex flex-col justify-center"
+                      className="absolute left-0.5 right-0.5 rounded-md px-1 py-0.5 cursor-pointer overflow-hidden flex items-center"
                       style={{ top, height, background: c + "25", borderLeft: `2px solid ${c}` }}
                       onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }}>
-                      <div className="text-[8px] font-bold leading-tight truncate" style={{ color: c }}>{ev.title}</div>
-                      {height >= ROW_H * 2.5 && (
-                        <div className="text-[7px] leading-tight truncate mt-0.5 opacity-60" style={{ color: c }}>
-                          {formatTime(ev.start_time)}
-                        </div>
-                      )}
+                      <div className="text-[8px] font-bold leading-tight tabular-nums whitespace-nowrap" style={{ color: c }}>
+                        {formatTime(ev.start_time)}
+                      </div>
                     </motion.div>
                   );
                 })}
@@ -146,6 +151,7 @@ export default function WeekView({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

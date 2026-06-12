@@ -236,7 +236,7 @@ export default function Home() {
       </div>
 
       {/* ── Main view area ── */}
-      <div className="flex-1 min-h-0" style={{ paddingBottom: 64 }}>
+      <div className="flex-1 min-h-0" style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}>
         {zoom === "year" && (
           <SwipeCarousel key={`y-${focusYear}-${swipeKey}`} onSwipeLeft={goNextYear} onSwipeRight={goPrevYear} keyId={`y-${focusYear}`}>
             <YearView year={focusYear - 1} events={events} direction={0} onTapMonth={(m) => zoomToMonth(m)} onSwipeDown={() => {}} onSwipeUp={() => {}} />
