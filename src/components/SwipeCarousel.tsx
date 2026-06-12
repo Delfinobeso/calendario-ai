@@ -54,7 +54,7 @@ export function SwipeCarousel({ children, onSwipeLeft, onSwipeRight, keyId }: Sw
         key={keyId}
         className="flex h-full"
         style={{ width: "300%" }}
-        animate={{ x: `calc(-100% + ${offset}px)` }}
+        animate={{ x: `calc(-100%/3 + ${offset}px)` }}
         transition={animating ? { type: "spring", stiffness: 300, damping: 35 } : { duration: 0 }}
         drag="x"
         dragConstraints={{ left: -constrain.current, right: constrain.current }}
