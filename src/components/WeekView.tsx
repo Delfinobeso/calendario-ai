@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   CalendarEvent, getWeekDates, isToday, getEventsForDay, formatTime,
@@ -8,16 +8,14 @@ import {
 import { getColor } from "@/lib/timeline";
 
 const WEEKDAY_LABELS = ["LU", "MA", "ME", "GI", "VE", "SA", "DO"];
-const ROW_H = 22; // px per ora — 24×22=528px, fits iPhone senza scroll
-const AXIS_W = 24;
+const ROW_H = 24; // px per ora
 
 export default function WeekView({
-  weekStart, events, direction,
-  onTapDay, onTapEvent, onSwipeLeft, onSwipeRight,
+  weekStart, events,
+  onTapDay, onTapEvent,
 }: {
-  weekStart: Date; events: CalendarEvent[]; direction: number;
+  weekStart: Date; events: CalendarEvent[];
   onTapDay: (d: Date) => void; onTapEvent: (ev: CalendarEvent) => void;
-  onSwipeLeft: () => void; onSwipeRight: () => void;
 }) {
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -27,14 +25,13 @@ export default function WeekView({
   const dayEventLists = dates.map((d) => getEventsForDay(events, d));
 
   // ── Horizontal weights ──
-  // Past days & empty days → compressed. Days with events → proportional width.
   const weights = dates.map((d, i) => {
     const n = dayEventLists[i].length;
     const past = d.toDateString() < todayStr && !isToday(d);
-    if (past || n === 0) return i >= 5 ? 0.4 : 0.5;
-    if (n === 1) return i >= 5 ? 1.0 : 1.2;
-    if (n === 2) return i >= 5 ? 1.3 : 1.6;
-    return i >= 5 ? 1.6 : 2.0;
+    if (past || n === 0) return i >= 5 ? 0.3 : 0.4;
+    if (n === 1) return i >= 5 ? 0.9 : 1.1;
+    if (n === 2) return i >= 5 ? 1.2 : 1.5;
+    return i >= 5 ? 1.5 : 1.9;
   });
 
   const [mounted, setMounted] = useState(false);
@@ -43,41 +40,24 @@ export default function WeekView({
   const mon = (d => { d.setDate(d.getDate() + (d.getDay() === 0 ? -6 : 1 - d.getDay())); return d; })(new Date(now));
   const isCurrentWeek = mounted && weekStart.toDateString() === mon.toDateString();
 
-  const isZoom = direction === 0;
-  const variants = isZoom
-    ? { enter: { opacity: 0, scale: 0.95 }, center: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } }
-    : { enter: (d: number) => ({ x: d > 0 ? "-40%" : "40%", opacity: 0 }), center: { x: 0, opacity: 1 }, exit: (d: number) => ({ x: d > 0 ? "40%" : "-40%", opacity: 0 }) };
-
   const TOTAL_H = 24 * ROW_H;
   const toY = (min: number) => (min / 60) * ROW_H;
-  const toH = (min: number) => Math.max(ROW_H - 1, (min / 60) * ROW_H);
-
-  // Swipe detection
-  const handleTouch = useRef<{ x: number }>({ x: 0 });
-  const onTouchStart = (e: React.TouchEvent) => { handleTouch.current.x = e.touches[0].clientX; };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - handleTouch.current.x;
-    if (Math.abs(dx) > 60) dx < 0 ? onSwipeLeft() : onSwipeRight();
-  };
 
   return (
-    <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-      className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col">
       {/* ── Day headers ── */}
-      <div className="flex px-2 gap-0.5 shrink-0" style={{ paddingLeft: AXIS_W + 4 }}>
+      <div className="flex px-3 gap-1 shrink-0 pb-1">
         {dates.map((date, idx) => {
           const todayCheck = isToday(date) && isCurrentWeek;
           return (
             <button key={date.toISOString()} onClick={() => onTapDay(date)}
-              style={{ flexGrow: weights[idx], flexBasis: 0, minWidth: 24 }}
-              className="flex flex-col items-center gap-0.5 py-0.5">
-              <span className={`text-[9px] font-bold tracking-wider ${idx >= 5 ? "text-[var(--color-text-tertiary)]/40" : "text-[var(--color-text-tertiary)]"}`}>
+              style={{ flexGrow: weights[idx], flexBasis: 0, minWidth: 22 }}
+              className="flex flex-col items-center py-1 rounded-xl active:bg-[var(--color-surface-secondary)] transition-colors">
+              <span className={`text-[10px] font-bold tracking-wider ${idx >= 5 ? "text-[var(--color-text-tertiary)]/40" : "text-[var(--color-text-tertiary)]"}`}>
                 {WEEKDAY_LABELS[idx]}
               </span>
-              <span className={`inline-flex items-center justify-center w-5.5 h-5.5 rounded-full text-[10px] font-bold transition-all ${
-                todayCheck ? "bg-[var(--color-accent)] text-black today-pulse shadow-[0_0_8px_var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}>
+              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold transition-all mt-0.5 ${
+                todayCheck ? "bg-[var(--color-accent)] text-black today-pulse shadow-[0_0_10px_var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}>
                 {date.getDate()}
               </span>
             </button>
@@ -85,18 +65,20 @@ export default function WeekView({
         })}
       </div>
 
-      {/* ── Timeline (no scroll) ── */}
-      <div className="flex-1 min-h-0 flex px-2 gap-0.5" style={{ paddingLeft: AXIS_W + 4 }}>
-        {/* Hour axis */}
-        <div className="absolute left-2 top-0 bottom-0 flex flex-col pointer-events-none"
-          style={{ width: AXIS_W, paddingTop: 32 /* header offset */ }}>
-          {Array.from({ length: 24 }, (_, hr) => hr % 3 === 0 && (
-            <span key={`h${hr}`}
-              className="text-[9px] text-[var(--color-text-tertiary)] tabular-nums font-medium leading-none"
-              style={{ height: ROW_H * (hr === 0 ? 1 : 3), display: "flex", alignItems: hr === 0 ? "flex-end" : "center", paddingBottom: hr === 0 ? 1 : 0 }}>
-              {hr}
-            </span>
-          ))}
+      {/* ── Timeline grid ── */}
+      <div className="flex-1 flex px-3 gap-1 min-h-0 relative">
+        {/* Hour labels (overlay, left edge) */}
+        <div className="absolute left-1 top-0 bottom-0 w-5 pointer-events-none z-20">
+          {Array.from({ length: 9 }, (_, i) => {
+            const hr = i * 3;
+            return (
+              <span key={hr}
+                className="absolute right-0 text-[9px] text-[var(--color-text-tertiary)]/60 tabular-nums font-medium leading-none"
+                style={{ top: hr * ROW_H - 4 }}>
+                {hr}
+              </span>
+            );
+          })}
         </div>
 
         {/* Day columns */}
@@ -107,19 +89,25 @@ export default function WeekView({
           const isPast = date.toDateString() < todayStr && !isToday(date);
           return (
             <div key={date.toISOString()}
-              style={{ flexGrow: weights[idx], flexBasis: 0, minWidth: 24 }}
+              style={{ flexGrow: weights[idx], flexBasis: 0, minWidth: 22 }}
               className="relative h-full">
               <button onClick={() => { if (!isPast) onTapDay(date); }}
                 className={`absolute inset-0 rounded-lg overflow-hidden transition-colors ${
-                  todayCheck ? "bg-[var(--color-today)] ring-1 ring-[var(--color-accent)]/30 z-10"
+                  todayCheck ? "bg-[var(--color-today)] ring-1 ring-[var(--color-accent)]/20 z-10"
                   : isPast ? "opacity-15"
                   : isWeekend ? "bg-[var(--color-weekend)]"
-                  : "bg-transparent"}`}>
-                {/* Hour lines */}
+                  : "bg-transparent"}`}
+                style={{ left: 2, right: 2 }}>
+                {/* Hour grid lines (subtle) */}
                 {Array.from({ length: 24 }, (_, hr) => (
-                  <div key={`gl${hr}`}
-                    className="absolute left-0 right-0 border-t border-[var(--color-surface-tertiary)]/12 pointer-events-none"
-                    style={{ top: hr * ROW_H }} />
+                  <div key={`g${hr}`}
+                    className="absolute left-0 right-0 border-t pointer-events-none"
+                    style={{
+                      top: hr * ROW_H,
+                      borderColor: hr === 0 ? "var(--color-surface-tertiary)" : "var(--color-surface-tertiary)",
+                      borderWidth: hr === 0 ? 1 : hr % 6 === 0 ? 0.5 : 0,
+                      opacity: hr === 0 ? 0.08 : hr % 6 === 0 ? 0.06 : 0,
+                    }} />
                 ))}
                 {/* Events */}
                 {dayEvents.map((ev, ei) => {
@@ -127,18 +115,18 @@ export default function WeekView({
                   const sm = s.getHours() * 60 + s.getMinutes();
                   const em = Math.max(sm + 30, e.getHours() * 60 + e.getMinutes());
                   const top = toY(sm);
-                  const height = toH(em - sm);
+                  const height = Math.max(ROW_H - 1, toY(em - sm));
                   const c = getColor(ei);
                   return (
                     <motion.div key={ev.id || ei}
                       initial={{ opacity: 0, scaleX: 0.9 }} animate={{ opacity: 1, scaleX: 1 }}
-                      transition={{ duration: 0.15, ease: "easeOut" }}
-                      className="absolute left-0.5 right-0.5 rounded-sm px-0.5 cursor-pointer overflow-hidden flex flex-col justify-center"
-                      style={{ top, height, background: c + "35", borderLeft: `2px solid ${c}` }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute left-0.5 right-0.5 rounded-md px-1 py-0.5 cursor-pointer overflow-hidden flex flex-col justify-center"
+                      style={{ top, height, background: c + "25", borderLeft: `2px solid ${c}` }}
                       onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }}>
-                      <div className="text-[7px] font-bold leading-tight truncate" style={{ color: c }}>{ev.title}</div>
+                      <div className="text-[8px] font-bold leading-tight truncate" style={{ color: c }}>{ev.title}</div>
                       {height >= ROW_H * 2.5 && (
-                        <div className="text-[6px] leading-tight truncate mt-px" style={{ color: c, opacity: 0.7 }}>
+                        <div className="text-[7px] leading-tight truncate mt-0.5 opacity-60" style={{ color: c }}>
                           {formatTime(ev.start_time)}
                         </div>
                       )}
@@ -147,14 +135,14 @@ export default function WeekView({
                 })}
                 {/* Now line */}
                 {todayCheck && (
-                  <div className="absolute left-0 right-0 h-0.5 bg-[var(--color-danger)] z-20 pointer-events-none rounded-full shadow-[0_0_4px_var(--color-danger)]"
-                    style={{ top: toY(nowMinutes) }} />
+                  <div className="absolute left-0 right-0 h-0.5 bg-[var(--color-danger)] z-20 pointer-events-none rounded-full shadow-[0_0_6px_var(--color-danger)]"
+                    style={{ top: toY(nowMinutes) - 0.5 }} />
                 )}
               </button>
             </div>
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 }
