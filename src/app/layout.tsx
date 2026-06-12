@@ -30,6 +30,7 @@ export default function RootLayout({
     <html lang="it">
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body className="antialiased">{children}</body>
     </html>
