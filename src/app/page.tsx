@@ -199,7 +199,16 @@ export default function Home() {
             body: JSON.stringify({ text }),
             signal: AbortSignal.timeout(8000),
           });
-          if (res.ok) parsed = await res.json();
+          if (res.ok) {
+            const data = await res.json();
+            parsed = data.event;
+
+            // Check for conflicts
+            if (data.conflicts && data.conflicts.length > 0) {
+              const conflictNames = data.conflicts.map((c: { title: string }) => c.title).join(", ");
+              setAiResult(`⚠️ Conflitto con: ${conflictNames}. Aggiunto comunque.`);
+            }
+          }
         } catch { /* fallthrough to local */ }
       }
       if (!parsed) {
