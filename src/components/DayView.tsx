@@ -1,25 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   CalendarEvent,
   getEventsForDay,
   formatTime,
 } from "@/store/calendar";
-
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-
-function eventTop(ev: CalendarEvent): number {
-  return new Date(ev.start_time).getHours() * 60 + new Date(ev.start_time).getMinutes();
-}
-function eventHeight(ev: CalendarEvent): number {
-  const ms = new Date(ev.end_time).getTime() - new Date(ev.start_time).getTime();
-  return Math.max(30, ms / (1000 * 60));
-}
-
-const COLORS = ["#c9a820", "#e04080", "#20c0a0", "#6c5ce7", "#e17055"];
-function getColor(idx: number) { return COLORS[idx % COLORS.length]; }
+import { buildSegments, computeTops, timeToY, getColor } from "@/lib/timeline";
 
 export default function DayView({
   date, events, direction,
@@ -29,10 +17,15 @@ export default function DayView({
   onTapEvent: (ev: CalendarEvent) => void;
   onSwipeLeft: () => void; onSwipeRight: () => void;
 }) {
-  const dayEvents = getEventsForDay(events, date);
+  const dayEvents = getEventsForDay(events, date)
+    .slice()
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const segments = buildSegments(dayEvents, isToday ? now.getHours() : null);
+  const { tops, totalHeight } = computeTops(segments);
 
   // direction=0 → scale (zoom), else → slide
   const isZoom = direction === 0;
@@ -52,6 +45,15 @@ export default function DayView({
     }
   };
 
+  // On sparse days, bring the event into the center of the view instead of
+  // landing on whatever empty hour happens to be scrolled to top.
+  const firstEventRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (dayEvents.length >= 1 && dayEvents.length <= 2) {
+      firstEventRef.current?.scrollIntoView({ block: "center", behavior: "auto" });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
       transition={{ duration: 0.2, ease: "easeOut" }}
@@ -65,19 +67,45 @@ export default function DayView({
 
       <motion.div onPanStart={handlePanStart} onPan={handlePan}
         className="flex-1 overflow-y-auto gpu-scroll relative px-3 touch-pan-y">
-        <div className="relative" style={{ height: 24 * 60 + "px" }}>
-          {HOURS.map((h) => (
-            <div key={h} className="absolute left-0 right-0 flex items-start" style={{ top: h * 60, height: 60 }}>
-              <span className="text-[10px] text-[var(--color-text-tertiary)] w-8 text-right pr-2 leading-none mt-0">{String(h).padStart(2,"0")}</span>
-              <div className="flex-1 border-t border-[var(--color-surface-tertiary)]/30" />
-            </div>
-          ))}
+        {dayEvents.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-8 pointer-events-none">
+            <span className="text-3xl mb-2 opacity-40">🗓️</span>
+            <p className="text-[14px] text-[var(--color-text-secondary)] font-medium">Nessun evento in programma</p>
+          </div>
+        )}
+        <div className="relative" style={{ height: totalHeight }}>
+          {segments.map((seg, i) =>
+            seg.type === "hour" ? (
+              <div key={`h${seg.hour}`} className="absolute left-0 right-0 flex items-start" style={{ top: tops[i], height: seg.height }}>
+                <span className="text-[10px] text-[var(--color-text-tertiary)] w-8 text-right pr-2 leading-none mt-0">{String(seg.hour).padStart(2, "0")}</span>
+                <div className="flex-1 border-t border-[var(--color-surface-tertiary)]/30" />
+              </div>
+            ) : (
+              <div key={`g${seg.hours[0]}`} className="absolute left-0 right-0 flex items-center px-2 gap-2" style={{ top: tops[i], height: seg.height }}>
+                {seg.hours.length < 24 && (
+                  <>
+                    <div className="flex-1 h-px bg-[var(--color-surface-tertiary)]/25" />
+                    <span className="text-[9px] text-[var(--color-text-tertiary)]/70 font-semibold tabular-nums shrink-0">
+                      {String(seg.hours[0]).padStart(2, "0")}–{String((seg.hours[seg.hours.length - 1] + 1) % 24).padStart(2, "0")}
+                    </span>
+                    <div className="flex-1 h-px bg-[var(--color-surface-tertiary)]/25" />
+                  </>
+                )}
+              </div>
+            )
+          )}
           {dayEvents.map((ev, ei) => {
-            const top = eventTop(ev), h = eventHeight(ev), c = getColor(ei);
+            const s = new Date(ev.start_time), e = new Date(ev.end_time);
+            const startMin = s.getHours() * 60 + s.getMinutes();
+            const endMin = Math.max(startMin + 30, e.getHours() * 60 + e.getMinutes());
+            const top = timeToY(segments, tops, startMin);
+            const height = Math.max(30, timeToY(segments, tops, endMin) - top);
+            const c = getColor(ei);
             return (
-              <motion.div key={ev.id || ei} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} whileTap={{ scale: 0.98 }}
+              <motion.div key={ev.id || ei} ref={ei === 0 ? firstEventRef : undefined}
+                initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2, ease: "easeOut" }} whileTap={{ scale: 0.98 }}
                 className="absolute left-12 right-1.5 rounded-xl px-3 py-2 cursor-pointer overflow-hidden touch-target"
-                style={{ top, height: h, background: c + "20", borderLeft: `3px solid ${c}`, color: c }}
+                style={{ top, height, background: c + "20", borderLeft: `3px solid ${c}`, color: c }}
                 onClick={() => onTapEvent(ev)}>
                 <div className="text-[11px] font-semibold leading-tight truncate">{ev.title}</div>
                 <div className="text-[10px] opacity-70 leading-tight">{formatTime(ev.start_time)} – {formatTime(ev.end_time)}</div>
@@ -86,7 +114,7 @@ export default function DayView({
             );
           })}
           {isToday && nowMinutes >= 0 && nowMinutes < 24 * 60 && (
-            <div className="absolute left-0 right-0 z-10 pointer-events-none" style={{ top: (nowMinutes / (24 * 60)) * 100 + "%" }}>
+            <div className="absolute left-0 right-0 z-10 pointer-events-none" style={{ top: timeToY(segments, tops, nowMinutes) }}>
               <div className="flex items-center"><div className="w-2 h-2 rounded-full bg-[var(--color-danger)] -ml-1" /><div className="flex-1 h-px bg-[var(--color-danger)]" /></div>
             </div>
           )}

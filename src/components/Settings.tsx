@@ -6,16 +6,14 @@ import {
   useSettings,
   type Theme,
   type Font,
-  type Language,
-  FONT_LABELS,
   FONT_FAMILIES,
 } from "@/store/settings";
 
 export default function Settings() {
   const [open, setOpen] = useState(false);
   const {
-    theme, font, language, profile,
-    setTheme, setFont, setLanguage, setProfile,
+    theme, font, profile,
+    setTheme, setFont, setProfile,
   } = useSettings();
 
   const [editName, setEditName] = useState(profile.name);
@@ -80,25 +78,6 @@ export default function Settings() {
               {/* ── Font ── */}
               <Section title="Font">
                 <FontPicker selected={font} onChange={setFont} />
-              </Section>
-
-              {/* ── Lingua ── */}
-              <Section title="Lingua">
-                <div className="flex gap-2">
-                  {(["it", "en"] as Language[]).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => setLanguage(l)}
-                      className={`flex-1 py-2.5 rounded-xl font-semibold text-[15px] transition-all active:scale-[0.97] ${
-                        language === l
-                          ? "bg-[var(--color-accent)] text-black"
-                          : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
-                      }`}
-                    >
-                      {l === "it" ? "🇮🇹 Italiano" : "🇬🇧 English"}
-                    </button>
-                  ))}
-                </div>
               </Section>
 
               <div className="h-6" />

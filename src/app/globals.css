@@ -2,23 +2,25 @@
 @import "tailwindcss";
 
 /* ── Superhuman-inspired palette ──
-   Dark:  Cod Gray #1b1b1b, Picton Blue #51b1e7, 5 grays, text @90% max
+   Dark:  Cod Gray #1b1b1b, Picton Blue #51b1e7, 5-step gray scale
    Light: neutral gray scale, deeper blue for contrast
-   Neither uses pure black (#000) or pure white (#fff) — Superhuman principle */
+   Neither uses pure black (#000) or pure white (#fff)
+   Text contrast tuned for readability without harshness */
+
 /* ── Dark theme (default) ── */
 :root,
 [data-theme="dark"] {
-  --color-surface: oklch(0.18 0.00 none);
-  --color-surface-secondary: oklch(0.23 0.00 none);
-  --color-surface-tertiary: oklch(0.30 0.00 none);
-  --color-accent: oklch(0.72 0.15 240);
-  --color-text-primary: oklch(0.90 0.00 none);
-  --color-text-secondary: oklch(0.65 0.00 none);
-  --color-text-tertiary: oklch(0.45 0.00 none);
-  --color-danger: oklch(0.52 0.20 20);
-  --color-success: oklch(0.58 0.16 160);
-  --color-today: oklch(0.72 0.15 240 / 0.15);
-  --color-weekend: oklch(0.20 0.00 none);
+  --color-surface: #1b1b1b;
+  --color-surface-secondary: #242424;
+  --color-surface-tertiary: #2e2e2e;
+  --color-accent: #51b1e7;
+  --color-text-primary: #e6e6e6;
+  --color-text-secondary: #999999;
+  --color-text-tertiary: #666666;
+  --color-danger: #e05252;
+  --color-success: #4caf84;
+  --color-today: rgba(81, 177, 231, 0.10);
+  --color-weekend: #151515;
   --sat: env(safe-area-inset-top, 0px);
   --sab: min(34px, env(safe-area-inset-bottom, 0px));
   --sal: env(safe-area-inset-left, 0px);
@@ -27,17 +29,17 @@
 
 /* ── Light theme ── */
 [data-theme="light"] {
-  --color-surface: oklch(0.98 0.00 none);
-  --color-surface-secondary: oklch(0.95 0.00 none);
-  --color-surface-tertiary: oklch(0.90 0.00 none);
-  --color-accent: oklch(0.60 0.18 240);
-  --color-text-primary: oklch(0.20 0.00 none);
-  --color-text-secondary: oklch(0.42 0.00 none);
-  --color-text-tertiary: oklch(0.58 0.00 none);
-  --color-danger: oklch(0.50 0.20 20);
-  --color-success: oklch(0.55 0.16 160);
-  --color-today: oklch(0.60 0.18 240 / 0.12);
-  --color-weekend: oklch(0.94 0.00 none);
+  --color-surface: #fafafa;
+  --color-surface-secondary: #f0f0f0;
+  --color-surface-tertiary: #e5e5e5;
+  --color-accent: #3b8bc6;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #555555;
+  --color-text-tertiary: #777777;
+  --color-danger: #d94141;
+  --color-success: #3d9e6d;
+  --color-today: rgba(59, 139, 198, 0.10);
+  --color-weekend: #f2f2f2;
 }
 
 * {
@@ -54,11 +56,6 @@ html {
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
   overflow: hidden;
-  /* height:100% rompe viewport-fit=cover su iOS: il fixed/100% si ferma
-     prima della home indicator zone. 100vh copre l'intera area fisica.
-     position:fixed qui interferiva col containing block dei discendenti
-     fixed in WKWebView (PWA) — il contenuto usa .fixed.inset-0 per il
-     bounce-prevention, niente serve qui. */
   height: 100vh;
 }
 
@@ -101,7 +98,7 @@ body {
   50% { opacity: 0.7; }
 }
 
-/* ---- Touch targets: minimum 44pt for iOS ---- */
+/* Touch targets: minimum 44pt for iOS */
 .touch-target {
   min-height: 44px;
   min-width: 44px;
@@ -133,4 +130,4 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 ::placeholder { color: var(--color-text-tertiary); opacity: 0.6; }
 input:focus-visible { outline: none; }
-::selection { background: var(--color-accent); color: black; }
+::selection { background: var(--color-accent); color: #1b1b1b; }

@@ -1,33 +1,47 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  CalendarEvent, getWeekDates, isToday, getEventsForDay, formatTime,
+  CalendarEvent, getWeekDates, isToday, getEventsForDay,
 } from "@/store/calendar";
+import { buildSegments, computeTops, timeToY, getColor } from "@/lib/timeline";
 
 const WEEKDAY_LABELS = ["LUN","MAR","MER","GIO","VEN","SAB","DOM"];
-
-function getColor(i: number) {
-  const c = ["#c9a820","#e04080","#20c0a0","#6c5ce7","#e17055"];
-  return c[i % c.length];
-}
+const AXIS_WIDTH = 28;
 
 export default function WeekView({
   weekStart, events, direction,
-  onTapDay, onDeleteEvent, onSwipeLeft, onSwipeRight,
+  onTapDay, onTapEvent, onSwipeLeft, onSwipeRight,
 }: {
   weekStart: Date; events: CalendarEvent[]; direction: number;
-  onTapDay: (d: Date) => void; onDeleteEvent: (ev: CalendarEvent) => void;
+  onTapDay: (d: Date) => void; onTapEvent: (ev: CalendarEvent) => void;
  onSwipeLeft: () => void; onSwipeRight: () => void;
  }) {
   const dates = getWeekDates(weekStart);
-  const todayRef = useRef<HTMLButtonElement>(null);
-  const now = new Date();
-  const mon = (d => { d.setDate(d.getDate() + (d.getDay()===0?-6:1-d.getDay())); return d; })(new Date(now));
-  const isCurrentWeek = weekStart.toDateString() === mon.toDateString();
+  const dayEventLists = dates.map((d) => getEventsForDay(events, d));
+  const dayCounts = dayEventLists.map((evs) => evs.length);
+  const colWeight = (n: number) => (n === 0 ? 1 : 1 + Math.min(n, 3));
 
-  useEffect(() => { if (isCurrentWeek && todayRef.current) todayRef.current.scrollIntoView({ block:"center", behavior:"smooth" }); }, [isCurrentWeek]);
+  // "now"-dependent state (current day/hour) is deferred to after mount so the
+  // server-rendered (build-time) markup matches the client's first render —
+  // otherwise the segment list length can differ and React throws a hydration error.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const mon = (d => { d.setDate(d.getDate() + (d.getDay()===0?-6:1-d.getDay())); return d; })(new Date(now));
+  const isCurrentWeek = mounted && weekStart.toDateString() === mon.toDateString();
+
+  const weekEvents = dayEventLists.flat();
+  const segments = buildSegments(weekEvents, isCurrentWeek ? now.getHours() : null);
+  const { tops, totalHeight } = computeTops(segments);
+
+  const nowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isCurrentWeek) nowRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [isCurrentWeek]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isZoom = direction === 0;
   const variants = isZoom
@@ -47,45 +61,76 @@ export default function WeekView({
   return (
     <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
       transition={{ duration: 0.2, ease: "easeOut" }} className="h-full flex flex-col overflow-hidden">
-      <div className="flex px-4 pb-2 shrink-0">
-        {WEEKDAY_LABELS.map((l,i) => (
-          <div key={l} className={`flex-1 text-center text-[11px] font-bold tracking-wider ${i>=5?"text-[var(--color-text-tertiary)]/50":"text-[var(--color-text-tertiary)]"}`}>{l}</div>
-        ))}
-      </div>
-
-      <motion.div onPanStart={handlePanStart} onPan={handlePan} className="flex-1 flex px-4 gap-1.5 min-h-0 gpu-layer">
+      <div className="flex px-4 pb-2 gap-1.5 shrink-0">
+        <div style={{ width: AXIS_WIDTH }} className="shrink-0" />
         {dates.map((date, idx) => {
-          const dayEvents = getEventsForDay(events, date);
-          const todayCheck = isToday(date);
-          const isWeekend = idx >= 5;
+          const todayCheck = isToday(date) && isCurrentWeek;
           return (
-            <button key={date.toISOString()} ref={todayCheck && isCurrentWeek ? todayRef : undefined}
-              onClick={() => onTapDay(date)}
-              className={`flex-1 flex flex-col rounded-2xl p-1.5 gap-1 transition-colors duration-300 text-left ${
-                todayCheck && isCurrentWeek ? "bg-[var(--color-today)] ring-1 ring-[var(--color-accent)]/30"
-                : isWeekend ? "bg-[var(--color-weekend)]" : "bg-transparent"}`}>
-              <div className="flex justify-center pt-1 pb-0.5">
-                <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold transition-all ${
-                  todayCheck && isCurrentWeek ? "bg-[var(--color-accent)] text-black today-pulse shadow-[0_0_12px_var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}>
-                  {date.getDate()}
-                </span>
-              </div>
-              <div className="flex-1 flex flex-col gap-1 min-h-0 overflow-hidden">
-                {dayEvents.slice(0,4).map((ev,ei) => (
-                  <motion.div key={ev.id||ei} layout initial={{opacity:0,scale:.92}} animate={{opacity:1,scale:1}}
-                    transition={{type:"spring",stiffness:400,damping:30}}
-                    className="rounded-xl px-2 py-1.5 text-[10px] leading-tight font-medium truncate"
-                    style={{background:getColor(ei)+"18",color:getColor(ei),borderLeft:`2.5px solid ${getColor(ei)}`}}
-                    onClick={e => { e.stopPropagation(); onDeleteEvent(ev); }}>
-                    <div className="truncate font-semibold mb-0.5">{ev.title}</div>
-                    <div className="opacity-70">{formatTime(ev.start_time)}</div>
-                  </motion.div>
-                ))}
-                {dayEvents.length > 4 && <div className="text-[10px] text-[var(--color-text-tertiary)] text-center font-medium">+{dayEvents.length-4}</div>}
-              </div>
+            <button key={date.toISOString()} onClick={() => onTapDay(date)}
+              style={{ flexGrow: colWeight(dayCounts[idx]), flexBasis: 0, minWidth: 40 }}
+              className="flex flex-col items-center gap-1">
+              <span className={`text-[11px] font-bold tracking-wider ${idx>=5?"text-[var(--color-text-tertiary)]/50":"text-[var(--color-text-tertiary)]"}`}>
+                {WEEKDAY_LABELS[idx]}
+              </span>
+              <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold transition-all ${
+                todayCheck ? "bg-[var(--color-accent)] text-black today-pulse shadow-[0_0_12px_var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}>
+                {date.getDate()}
+              </span>
             </button>
           );
         })}
+      </div>
+
+      <motion.div onPanStart={handlePanStart} onPan={handlePan}
+        className="flex-1 overflow-y-auto gpu-scroll px-4 touch-pan-y">
+        <div className="flex gap-1.5 relative" style={{ height: totalHeight }}>
+          <div style={{ width: AXIS_WIDTH }} className="shrink-0 relative">
+            {segments.map((seg, i) => seg.type === "hour" && (
+              <span key={`h${seg.hour}`} className="absolute right-1 text-[9px] text-[var(--color-text-tertiary)] leading-none"
+                style={{ top: tops[i] - 5 }}>
+                {String(seg.hour).padStart(2, "0")}
+              </span>
+            ))}
+          </div>
+
+          {dates.map((date, idx) => {
+            const dayEvents = dayEventLists[idx];
+            const todayCheck = isToday(date) && isCurrentWeek;
+            const isWeekend = idx >= 5;
+            const w = 100 / Math.max(1, dayEvents.length);
+            return (
+              <button key={date.toISOString()} onClick={() => onTapDay(date)}
+                style={{ flexGrow: colWeight(dayCounts[idx]), flexBasis: 0, minWidth: 40 }}
+                className={`relative rounded-2xl overflow-hidden transition-colors duration-300 ${
+                  todayCheck ? "bg-[var(--color-today)] ring-1 ring-[var(--color-accent)]/30"
+                  : isWeekend ? "bg-[var(--color-weekend)]" : "bg-transparent"}`}>
+                {segments.map((seg, i) => seg.type === "hour" && (
+                  <div key={`l${seg.hour}`} className="absolute left-0 right-0 border-t border-[var(--color-surface-tertiary)]/20"
+                    style={{ top: tops[i] }} />
+                ))}
+                {dayEvents.map((ev, ei) => {
+                  const s = new Date(ev.start_time), e = new Date(ev.end_time);
+                  const startMin = s.getHours() * 60 + s.getMinutes();
+                  const endMin = Math.max(startMin + 30, e.getHours() * 60 + e.getMinutes());
+                  const top = timeToY(segments, tops, startMin);
+                  const height = Math.max(6, timeToY(segments, tops, endMin) - top);
+                  return (
+                    <motion.div key={ev.id || ei}
+                      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="absolute rounded-md"
+                      style={{ top, height, left: `calc(${w * ei}% + 1px)`, width: `calc(${w}% - 2px)`, background: getColor(ei) }}
+                      onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }} />
+                  );
+                })}
+                {todayCheck && (
+                  <div ref={nowRef} className="absolute left-0 right-0 h-px bg-[var(--color-danger)] z-10 pointer-events-none"
+                    style={{ top: timeToY(segments, tops, nowMinutes) }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
       </motion.div>
     </motion.div>
   );

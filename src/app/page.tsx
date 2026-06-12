@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   useCalendar,
   getWeekStart,
+  formatTime,
   type CalendarEvent,
 } from "@/store/calendar";
 import { useUI } from "@/store/ui";
@@ -32,6 +33,15 @@ const ZOOM_LABELS: Record<ZoomLevel, string> = {
   day: "Giorno",
 };
 
+function formatEventDate(ev: CalendarEvent): string {
+  return new Date(ev.start_time).toLocaleDateString("it", { weekday: "long", day: "numeric", month: "long" });
+}
+
+function formatEventTimeRange(ev: CalendarEvent): string {
+  if (ev.start_time === ev.end_time) return formatTime(ev.start_time);
+  return `${formatTime(ev.start_time)} – ${formatTime(ev.end_time)}`;
+}
+
 export default function Home() {
   const { events, addEvent, removeEvent, loadEvents, updateEvent } = useCalendar();
   const {
@@ -39,6 +49,7 @@ export default function Home() {
     setAiInput, setAiLoading, setAiResult,
     sheetOpen, openSheet, closeSheet,
     editEvent, openEdit, closeEdit,
+    detailEvent, openDetail, closeDetail,
   } = useUI();
 
   const today = new Date();
@@ -144,6 +155,8 @@ export default function Home() {
   const [formLoc, setFormLoc] = useState("");
   const [formDate, setFormDate] = useState("");
   const [formTime, setFormTime] = useState("");
+  const [formDesc, setFormDesc] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleOpenNewEvent = () => {
     const now = new Date();
@@ -153,6 +166,7 @@ export default function Home() {
     if (now.getMinutes() >= 30) rounded.setHours(rounded.getHours() + 1);
     setFormDate(now.toISOString().slice(0, 10));
     setFormTime(rounded.toTimeString().slice(0, 5));
+    setFormDesc("");
     openSheet();
   };
 
@@ -160,11 +174,11 @@ export default function Home() {
     e.preventDefault();
     if (!formTitle || !formDate || !formTime) return;
     await addEvent({
-      title: formTitle, location: formLoc, description: "",
+      title: formTitle, location: formLoc, description: formDesc,
       start_time: `${formDate}T${formTime}:00`, end_time: `${formDate}T${formTime}:00`,
       source: "manual",
     });
-    setFormTitle(""); setFormLoc(""); setFormDate(""); setFormTime("");
+    setFormTitle(""); setFormLoc(""); setFormDate(""); setFormTime(""); setFormDesc("");
     closeSheet();
   };
 
@@ -174,27 +188,42 @@ export default function Home() {
     await updateEvent(editEvent.id, {
       title: formTitle,
       location: formLoc,
+      description: formDesc,
       start_time: `${formDate}T${formTime}:00`,
       end_time: `${formDate}T${formTime}:00`,
     });
-    setFormTitle(""); setFormLoc(""); setFormDate(""); setFormTime("");
+    setFormTitle(""); setFormLoc(""); setFormDate(""); setFormTime(""); setFormDesc("");
     closeEdit();
   };
 
   const handleDelete = async () => {
     if (!editEvent?.id) return;
     await removeEvent(editEvent.id);
+    setConfirmDelete(false);
     closeEdit();
   };
+
+  const handleCloseEdit = useCallback(() => {
+    setConfirmDelete(false);
+    closeEdit();
+  }, [closeEdit]);
 
   const handleOpenEdit = useCallback((ev: CalendarEvent) => {
     setFormTitle(ev.title);
     setFormLoc(ev.location || "");
+    setFormDesc(ev.description || "");
     const start = new Date(ev.start_time);
     setFormDate(start.toISOString().slice(0, 10));
     setFormTime(start.toTimeString().slice(0, 5));
+    setConfirmDelete(false);
     openEdit(ev);
   }, [openEdit]);
+
+  const handleOpenEditFromDetail = useCallback(() => {
+    if (!detailEvent) return;
+    closeDetail();
+    handleOpenEdit(detailEvent);
+  }, [detailEvent, closeDetail, handleOpenEdit]);
 
   return (
     <div
@@ -261,14 +290,14 @@ export default function Home() {
           {zoom === "week" && (
             <WeekView
               key={`week-${focusWeekStart.toISOString()}`} weekStart={focusWeekStart} events={events} direction={swipeDir}
-              onTapDay={zoomToDay} onDeleteEvent={handleOpenEdit}
+              onTapDay={zoomToDay} onTapEvent={openDetail}
               onSwipeLeft={goNext} onSwipeRight={goPrev}
             />
           )}
           {zoom === "day" && (
             <DayView
               key={`day-${focusDate.toISOString()}`} date={focusDate} events={events} direction={swipeDir}
-              onTapEvent={handleOpenEdit} onSwipeLeft={goNext} onSwipeRight={goPrev}
+              onTapEvent={openDetail} onSwipeLeft={goNext} onSwipeRight={goPrev}
             />
           )}
         </AnimatePresence>
@@ -321,7 +350,9 @@ export default function Home() {
                       value={formTime} onChange={(e) => setFormTime(e.target.value)} />
                   </label>
                 </div>
-                <button type="submit" className="w-full bg-[var(--color-accent)] text-black font-bold rounded-xl py-4 active:scale-[0.98] transition-transform text-[16px]">
+                <textarea className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[16px] resize-none"
+                  placeholder="Descrizione (opzionale)" rows={3} value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
+                <button type="submit" className="w-full touch-target bg-[var(--color-accent)] text-black font-bold rounded-xl py-4 active:scale-[0.98] transition-transform text-[16px]">
                   Aggiungi evento
                 </button>
               </form>
@@ -335,7 +366,7 @@ export default function Home() {
         {editEvent && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeEdit} />
+              className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={handleCloseEdit} />
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
@@ -358,17 +389,87 @@ export default function Home() {
                       value={formTime} onChange={(e) => setFormTime(e.target.value)} />
                   </label>
                 </div>
-                <div className="flex gap-3">
-                  <button type="button" onClick={handleDelete}
-                    className="flex-1 touch-target py-4 bg-[var(--color-danger)] text-white rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
-                    Elimina
-                  </button>
-                  <button type="submit"
-                    className="flex-[2] touch-target py-4 bg-[var(--color-accent)] text-black rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
-                    Salva modifiche
-                  </button>
-                </div>
+                <textarea className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 transition-shadow text-[16px] resize-none"
+                  placeholder="Descrizione (opzionale)" rows={3} value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
+                {!confirmDelete ? (
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setConfirmDelete(true)}
+                      className="flex-1 touch-target py-4 bg-[var(--color-danger)] text-white rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
+                      Elimina
+                    </button>
+                    <button type="submit"
+                      className="flex-[2] touch-target py-4 bg-[var(--color-accent)] text-black rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
+                      Salva modifiche
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <p className="text-[13px] text-[var(--color-text-secondary)] text-center">Eliminare definitivamente questo evento?</p>
+                    <div className="flex gap-3">
+                      <button type="button" onClick={() => setConfirmDelete(false)}
+                        className="flex-1 touch-target py-4 bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
+                        Annulla
+                      </button>
+                      <button type="button" onClick={handleDelete}
+                        className="flex-1 touch-target py-4 bg-[var(--color-danger)] text-white rounded-xl font-bold text-[16px] active:scale-[0.98] transition-transform">
+                        Conferma eliminazione
+                      </button>
+                    </div>
+                  </div>
+                )}
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Event Detail Sheet ── */}
+      <AnimatePresence>
+        {detailEvent && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeDetail} />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
+              <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
+              <h2 className="text-[20px] font-bold mb-1 break-words">{detailEvent.title}</h2>
+              <p className="text-[14px] text-[var(--color-accent)] font-semibold capitalize mb-0.5">{formatEventDate(detailEvent)}</p>
+              <p className="text-[14px] text-[var(--color-text-secondary)] mb-5">{formatEventTimeRange(detailEvent)}</p>
+
+              {detailEvent.location && (
+                <div className="mb-5">
+                  <div className="flex items-start gap-2 text-[var(--color-text-primary)] text-[15px] mb-2.5">
+                    <span className="text-base leading-tight">📍</span>
+                    <span className="flex-1 break-words leading-tight">{detailEvent.location}</span>
+                  </div>
+                  <div className="flex gap-3">
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(detailEvent.location)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex-1 touch-target flex items-center justify-center gap-1.5 bg-[var(--color-surface-secondary)] rounded-xl py-3 text-[14px] font-semibold text-[var(--color-text-primary)] active:scale-[0.98] transition-transform">
+                      🗺️ Maps
+                    </a>
+                    <a href={`https://waze.com/ul?q=${encodeURIComponent(detailEvent.location)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="flex-1 touch-target flex items-center justify-center gap-1.5 bg-[var(--color-surface-secondary)] rounded-xl py-3 text-[14px] font-semibold text-[var(--color-text-primary)] active:scale-[0.98] transition-transform">
+                      🧭 Waze
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {detailEvent.description && (
+                <div className="mb-6">
+                  <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Descrizione</span>
+                  <p className="text-[15px] text-[var(--color-text-primary)] leading-relaxed whitespace-pre-wrap">{detailEvent.description}</p>
+                </div>
+              )}
+
+              <button onClick={handleOpenEditFromDetail}
+                className="w-full touch-target bg-[var(--color-accent)] text-black font-bold rounded-xl py-4 active:scale-[0.98] transition-transform text-[16px] mb-2">
+                Modifica
+              </button>
             </motion.div>
           </>
         )}
