@@ -119,7 +119,7 @@ export default function WeekView({
                   const c = getColor(ei);
                   return (
                     <motion.div key={ev.id || ei}
-                      initial={{ opacity: 0, scaleX: 0.9 }} animate={{ opacity: 1, scaleX: 1 }}
+                      initial={false} animate={{ opacity: 1, scaleX: 1 }}
                       transition={{ duration: 0.15 }}
                       className="absolute left-0.5 right-0.5 rounded-md px-1 py-0.5 cursor-pointer overflow-hidden flex flex-col justify-center"
                       style={{ top, height, background: c + "25", borderLeft: `2px solid ${c}` }}

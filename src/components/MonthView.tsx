@@ -55,7 +55,7 @@ export default function MonthView({
   };
 
   return (
-    <motion.div custom={direction} variants={variants} initial="enter" animate="center" exit="exit"
+    <motion.div custom={direction} variants={variants} initial={false} animate="center" exit="exit"
       transition={{ duration: 0.2, ease: "easeOut" }}
       className="h-full flex flex-col overflow-hidden">
       <div className="text-center py-2.5 shrink-0">

@@ -31,7 +31,7 @@ export default function DayView({
   }, []); // eslint-disable-line
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+    <motion.div initial={false} animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
       className="h-full flex flex-col overflow-hidden">
       <div className="text-center py-3.5 shrink-0">
@@ -74,7 +74,7 @@ export default function DayView({
             const c = getColor(ei);
             return (
               <motion.div key={ev.id || ei} ref={ei === 0 ? firstEventRef : undefined}
-                initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
+                initial={false} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
                 whileTap={{ scale: 0.98 }}
                 className="absolute left-12 right-1.5 rounded-xl px-3 py-2 cursor-pointer overflow-hidden touch-target"
                 style={{ top, height, background: c + "18", borderLeft: `3px solid ${c}`, color: c }}
