@@ -1,7 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-:root {
+/* ── Dark theme (default) ── */
+:root,
+[data-theme="dark"] {
   --color-surface: oklch(0.13 0.02 95);
   --color-surface-secondary: oklch(0.18 0.02 95);
   --color-surface-tertiary: oklch(0.24 0.02 95);
@@ -17,6 +19,21 @@
   --sab: min(34px, env(safe-area-inset-bottom, 0px));
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
+}
+
+/* ── Light theme (cream) ── */
+[data-theme="light"] {
+  --color-surface: oklch(0.97 0.01 95);
+  --color-surface-secondary: oklch(0.94 0.02 95);
+  --color-surface-tertiary: oklch(0.88 0.03 95);
+  --color-accent: oklch(0.72 0.19 95);
+  --color-text-primary: oklch(0.15 0.02 95);
+  --color-text-secondary: oklch(0.35 0.03 95);
+  --color-text-tertiary: oklch(0.55 0.03 95);
+  --color-danger: oklch(0.52 0.22 25);
+  --color-success: oklch(0.60 0.18 155);
+  --color-today: oklch(0.72 0.19 95 / 0.18);
+  --color-weekend: oklch(0.92 0.01 95);
 }
 
 * {
@@ -86,17 +103,28 @@ body {
   min-width: 44px;
 }
 
-/* Native date/time inputs dark mode */
+/* Native date/time inputs */
 input[type="date"], input[type="time"] {
-  color-scheme: dark;
+  color-scheme: light dark;
   -webkit-appearance: none;
   min-height: 44px;
   color: var(--color-text-primary);
   -webkit-text-fill-color: var(--color-text-primary);
 }
+[data-theme="light"] input[type="date"],
+[data-theme="light"] input[type="time"] {
+  color-scheme: light;
+}
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="time"] {
+  color-scheme: dark;
+}
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.8); opacity: 0.6;
+  opacity: 0.5;
+}
+[data-theme="dark"] input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
 }
 
 ::placeholder { color: var(--color-text-tertiary); opacity: 0.6; }

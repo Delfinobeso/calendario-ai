@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#c9a820",
+  themeColor: "#1a1c1e",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -27,12 +28,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it">
+    <html lang="it" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

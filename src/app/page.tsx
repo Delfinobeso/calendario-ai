@@ -14,6 +14,7 @@ import { usePinchZoom } from "@/hooks/usePinchZoom";
 import YearView from "@/components/YearView";
 import MonthView from "@/components/MonthView";
 import WeekView from "@/components/WeekView";
+import Settings from "@/components/Settings";
 import DayView from "@/components/DayView";
 
 type ZoomLevel = "year" | "month" | "week" | "day";
@@ -203,11 +204,14 @@ export default function Home() {
             <h1 className="text-[24px] font-extrabold text-[var(--color-text-primary)] tracking-tight leading-tight">Calendario</h1>
             <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5 capitalize">{headerLabel}</p>
           </div>
-          {showToday && (
-            <button onClick={jumpToToday} className="touch-target text-[13px] font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-4 py-2 rounded-full active:scale-95 transition-transform flex items-center">
-              Oggi
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {showToday && (
+              <button onClick={jumpToToday} className="touch-target text-[13px] font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-4 py-2 rounded-full active:scale-95 transition-transform flex items-center">
+                Oggi
+              </button>
+            )}
+            <Settings />
+          </div>
         </div>
       </header>
 
