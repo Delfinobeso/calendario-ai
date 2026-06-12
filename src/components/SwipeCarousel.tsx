@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { useRef, useLayoutEffect } from "react";
+import { motion, useMotionValue, animate, type PanInfo } from "framer-motion";
 
 interface SwipeCarouselProps {
   children: [React.ReactNode, React.ReactNode, React.ReactNode]; // [prev, current, next]
@@ -11,53 +11,45 @@ interface SwipeCarouselProps {
 }
 
 export function SwipeCarousel({ children, onSwipeLeft, onSwipeRight, keyId }: SwipeCarouselProps) {
-  const [offset, setOffset] = useState(0);
-  const [animating, setAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const width = useRef(0);
-  const constrain = useRef(0);
+  const width = useRef(typeof window !== "undefined" ? window.innerWidth : 0);
+  const x = useMotionValue(-width.current);
 
-  const onDragEnd = useCallback((_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
+  // Re-center on the current panel whenever the carousel content changes.
+  useLayoutEffect(() => {
+    const w = containerRef.current?.offsetWidth || window.innerWidth;
+    width.current = w;
+    x.set(-w);
+  }, [keyId]);
+
+  const onDragEnd = (_: unknown, info: PanInfo) => {
     const w = width.current || window.innerWidth;
     const threshold = w * 0.25;
-    const absOffset = Math.abs(info.offset.x);
-    const absVel = Math.abs(info.velocity.x);
+    const delta = x.get() + w; // offset from resting position (current panel)
 
-    if (absOffset > threshold || absVel > 500) {
-      const dir = info.offset.x > 0 ? 1 : -1;
-      setAnimating(true);
-      setOffset(dir * w);
-      // After snap animation, shift window
-      setTimeout(() => {
-        if (dir === -1) onSwipeLeft();
-        else onSwipeRight();
-        setOffset(0);
-        setAnimating(false);
-      }, 250);
-    } else {
-      setAnimating(true);
-      setOffset(0);
-      setTimeout(() => setAnimating(false), 250);
-    }
-  }, [onSwipeLeft, onSwipeRight]);
+    let snapTo = -w;
+    let callback: (() => void) | null = null;
 
-  const onMeasure = useCallback((node: HTMLDivElement | null) => {
-    if (node) {
-      width.current = node.offsetWidth;
-      constrain.current = node.offsetWidth * 0.6;
+    if (delta < -threshold || info.velocity.x < -500) {
+      snapTo = -2 * w;
+      callback = onSwipeLeft;
+    } else if (delta > threshold || info.velocity.x > 500) {
+      snapTo = 0;
+      callback = onSwipeRight;
     }
-  }, []);
+
+    animate(x, snapTo, { type: "tween", duration: 0.2, ease: "easeOut" }).then(() => {
+      callback?.();
+    });
+  };
 
   return (
-    <div ref={onMeasure} className="h-full overflow-hidden relative">
+    <div ref={containerRef} className="h-full overflow-hidden relative">
       <motion.div
-        key={keyId}
         className="flex h-full"
-        style={{ width: "300%" }}
-        animate={{ x: `calc(-100%/3 + ${offset}px)` }}
-        transition={animating ? { type: "spring", stiffness: 300, damping: 35 } : { duration: 0 }}
+        style={{ width: "300%", x }}
         drag="x"
-        dragConstraints={{ left: -constrain.current, right: constrain.current }}
+        dragConstraints={containerRef}
         dragElastic={0.15}
         onDragEnd={onDragEnd}
         dragMomentum={false}
