@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { CalendarEvent, isToday, isSameDay } from "@/store/calendar";
 
@@ -42,9 +43,13 @@ export default function YearView({
     ? { enter: { opacity: 0, scale: 0.95 }, center: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } }
     : { enter: (d: number) => ({ y: d > 0 ? "-50%" : "50%", opacity: 0 }), center: { y: 0, opacity: 1 }, exit: (d: number) => ({ y: d > 0 ? "50%" : "-50%", opacity: 0 }) };
 
+  const swiped = useRef(false);
+  const handlePanStart = () => { swiped.current = false; };
   const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
+    if (swiped.current) return;
     if (Math.abs(info.offset.y) > 50 && Math.abs(info.offset.y) > Math.abs(info.offset.x) * 2) {
-      info.offset.y < 0 ? onSwipeUp() : onSwipeDown();
+      swiped.current = true;
+      if (info.offset.y < 0) onSwipeUp(); else onSwipeDown();
     }
   };
 
@@ -56,7 +61,7 @@ export default function YearView({
         <p className="text-lg font-bold text-[var(--color-text-primary)]">{year}</p>
       </div>
 
-      <motion.div onPan={handlePan} className="flex-1 overflow-y-auto gpu-scroll px-2">
+      <motion.div onPanStart={handlePanStart} onPan={handlePan} className="flex-1 overflow-y-auto gpu-scroll px-2">
         <div className="grid grid-cols-3 gap-3">
           {MONTHS_SHORT.map((name, monthIdx) => {
             const weeks = getMonthDays(year, monthIdx);

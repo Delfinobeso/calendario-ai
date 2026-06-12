@@ -17,16 +17,12 @@
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
-  /* iPhone 17 Pro: Dynamic Island ~59pt, home indicator ~34pt */
-  --header-height: calc(44px + var(--sat));
 }
 
 * {
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
-  /* iOS continuous corner approximation */
-  -webkit-mask-image: none;
 }
 
 html {
@@ -48,9 +44,6 @@ body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  /* iOS safe area aware */
-  padding-top: var(--sat);
-  padding-bottom: var(--sab);
 }
 
 /* Hide scrollbars, keep 120Hz momentum */
@@ -70,9 +63,7 @@ body {
 }
 
 /* Safe area utilities */
-.pt-safe { padding-top: var(--sat); }
-.pb-safe { padding-bottom: max(20px, var(--sab)); }
-.notch-top { padding-top: calc(var(--sat) + 8px); }
+.pb-safe { padding-bottom: max(16px, var(--sab)); }
 
 /* iOS frosted glass */
 .sheet-blur {
@@ -107,8 +98,3 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 ::placeholder { color: var(--color-text-tertiary); opacity: 0.6; }
 input:focus-visible { outline: none; }
 ::selection { background: var(--color-accent); color: black; }
-
-/* iOS sheet continuous corner (top only) */
-.sheet-top {
-  border-radius: 20px 20px 0 0;
-}

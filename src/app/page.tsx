@@ -42,16 +42,14 @@ export default function Home() {
   const today = new Date();
   const currentWeekStart = getWeekStart(today);
 
-  // ─── Zoom state ───
   const [zoom, setZoom] = useState<ZoomLevel>("week");
   const [focusDate, setFocusDate] = useState(today);
-  const [swipeDir, setSwipeDir] = useState(0); // -1 left, +1 right
+  const [swipeDir, setSwipeDir] = useState(0);
 
   const focusYear = focusDate.getFullYear();
   const focusMonth = focusDate.getMonth();
   const focusWeekStart = useMemo(() => getWeekStart(focusDate), [focusDate]);
 
-  // ─── Zoom out (pinch) ───
   const zoomOut = useCallback(() => {
     setSwipeDir(0);
     setZoom((z) => {
@@ -64,11 +62,9 @@ export default function Home() {
     });
   }, []);
 
-  // ─── Zoom in (tap) ───
   const zoomToDay = useCallback((d: Date) => { setSwipeDir(0); setFocusDate(d); setZoom("day"); }, []);
   const zoomToMonth = useCallback((m: number) => { setSwipeDir(0); setFocusDate(new Date(focusYear, m, 1)); setZoom("month"); }, [focusYear]);
 
-  // ─── Swipe navigation (within same zoom level) ───
   const goNext = useCallback(() => {
     setSwipeDir(-1);
     const d = new Date(focusDate);
@@ -97,10 +93,8 @@ export default function Home() {
 
   const pinch = usePinchZoom(zoomOut, 0.6);
 
-  // Load events from API on mount
-  useEffect(() => { loadEvents(); }, []);
+  useEffect(() => { loadEvents(); }, [loadEvents]);
 
-  // ─── Header label ───
   const headerLabel = useMemo(() => {
     switch (zoom) {
       case "year":  return String(focusYear);
@@ -119,7 +113,6 @@ export default function Home() {
   }, [zoom, focusYear, focusMonth, focusWeekStart, focusDate]);
 
   const isCurrentWeek = zoom === "week" && focusWeekStart.toDateString() === currentWeekStart.toDateString();
-  const isTodayFocused = zoom === "day" && focusDate.toDateString() === today.toDateString();
   const isCurrentMonth = zoom === "month" && focusMonth === today.getMonth() && focusYear === today.getFullYear();
   const isCurrentYear = zoom === "year" && focusYear === today.getFullYear();
 
@@ -128,7 +121,6 @@ export default function Home() {
     (zoom === "month" && !isCurrentMonth) ||
     (zoom === "year" && !isCurrentYear);
 
-  // ─── AI ───
   const handleAISubmit = async () => {
     if (!aiInput.trim()) return;
     setAiLoading(true); setAiResult(null);
@@ -142,7 +134,6 @@ export default function Home() {
     setTimeout(() => setAiResult(null), 2500);
   };
 
-  // ─── Form ───
   const [formTitle, setFormTitle] = useState("");
   const [formLoc, setFormLoc] = useState("");
   const [formDate, setFormDate] = useState("");
@@ -160,7 +151,6 @@ export default function Home() {
     closeSheet();
   };
 
-  // ─── Edit event ───
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editEvent?.id || !formTitle || !formDate || !formTime) return;
@@ -180,25 +170,27 @@ export default function Home() {
     closeEdit();
   };
 
-  // Pre-fill form when edit opens
-  useEffect(() => {
-    if (editEvent) {
-      setFormTitle(editEvent.title);
-      setFormLoc(editEvent.location || "");
-      const start = new Date(editEvent.start_time);
-      setFormDate(start.toISOString().slice(0, 10));
-      setFormTime(start.toTimeString().slice(0, 5));
-    }
-  }, [editEvent]);
+  const handleOpenEdit = useCallback((ev: CalendarEvent) => {
+    setFormTitle(ev.title);
+    setFormLoc(ev.location || "");
+    const start = new Date(ev.start_time);
+    setFormDate(start.toISOString().slice(0, 10));
+    setFormTime(start.toTimeString().slice(0, 5));
+    openEdit(ev);
+  }, [openEdit]);
 
   return (
-    <div className="h-dvh flex flex-col bg-[var(--color-surface)] overflow-hidden" {...pinch}>
+    <div
+      className="h-dvh flex flex-col overflow-hidden bg-[var(--color-surface)]"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      {...pinch}
+    >
       {/* ── Header ── */}
-      <header className="notch-top px-5 pt-1 pb-3 shrink-0">
+      <header className="shrink-0 px-5 pt-1 pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[28px] font-extrabold text-[var(--color-text-primary)] tracking-tight leading-tight">Calendario</h1>
-            <p className="text-[13px] text-[var(--color-text-secondary)] mt-0.5 capitalize">{headerLabel}</p>
+            <h1 className="text-[24px] font-extrabold text-[var(--color-text-primary)] tracking-tight leading-tight">Calendario</h1>
+            <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5 capitalize">{headerLabel}</p>
           </div>
           {showToday && (
             <button onClick={jumpToToday} className="touch-target text-[13px] font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-4 py-2 rounded-full active:scale-95 transition-transform flex items-center">
@@ -209,7 +201,7 @@ export default function Home() {
       </header>
 
       {/* ── AI Input ── */}
-      <div className="px-5 pb-3 shrink-0">
+      <div className="shrink-0 px-5 pb-2">
         <div className="flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
           <span className="pl-3 text-base">✨</span>
           <input
@@ -232,7 +224,7 @@ export default function Home() {
       </div>
 
       {/* ── Zoom view ── */}
-      <div className="flex-1 min-h-0 overflow-hidden gpu-layer">
+      <div className="flex-1 min-h-0 overflow-hidden gpu-layer" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
         <AnimatePresence mode="wait" custom={swipeDir}>
           {zoom === "year" && (
             <YearView
@@ -249,31 +241,36 @@ export default function Home() {
           {zoom === "week" && (
             <WeekView
               key={`week-${focusWeekStart.toISOString()}`} weekStart={focusWeekStart} events={events} direction={swipeDir}
-              onTapDay={zoomToDay} onDeleteEvent={(ev) => openEdit(ev)}
+              onTapDay={zoomToDay} onDeleteEvent={handleOpenEdit}
               onSwipeLeft={goNext} onSwipeRight={goPrev}
             />
           )}
           {zoom === "day" && (
             <DayView
               key={`day-${focusDate.toISOString()}`} date={focusDate} events={events} direction={swipeDir}
-              onTapEvent={(ev) => openEdit(ev)} onSwipeLeft={goNext} onSwipeRight={goPrev}
+              onTapEvent={handleOpenEdit} onSwipeLeft={goNext} onSwipeRight={goPrev}
             />
           )}
         </AnimatePresence>
       </div>
 
       {/* ── Bottom bar ── */}
-      <div className="pb-safe px-5 pt-2 shrink-0 flex gap-3">
-        {zoom !== "year" && (
-          <button onClick={zoomOut} className="flex-1 touch-target py-3 bg-[var(--color-surface-secondary)] rounded-2xl text-[var(--color-text-secondary)] text-[15px] font-semibold active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5">
-            <span className="text-base">🤏</span>
-            {ZOOM_LABELS[zoom === "day" ? "week" : zoom === "week" ? "month" : "year"]}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-20 px-4 pt-2 bg-[var(--color-surface)] border-t border-[var(--color-surface-tertiary)]/20"
+        style={{ paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))" }}
+      >
+        <div className="flex gap-3 items-stretch">
+          {zoom !== "year" && (
+            <button onClick={zoomOut} className="touch-target py-2.5 px-4 bg-[var(--color-surface-secondary)] rounded-2xl text-[var(--color-text-secondary)] text-[15px] font-semibold active:scale-[0.97] transition-transform flex items-center justify-center gap-1.5">
+              <span className="text-base">🤏</span>
+              {ZOOM_LABELS[zoom === "day" ? "week" : zoom === "week" ? "month" : "year"]}
+            </button>
+          )}
+          <button onClick={openSheet}
+            className="flex-1 touch-target py-2.5 bg-[var(--color-accent)] text-black rounded-2xl font-bold text-[16px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
+            <span className="text-lg leading-none">+</span> Nuovo evento
           </button>
-        )}
-        <button onClick={openSheet}
-          className={`${zoom !== "year" ? "flex-[2]" : "flex-1"} touch-target py-3.5 bg-[var(--color-accent)] text-black rounded-2xl font-bold text-[16px] active:scale-[0.98] transition-transform flex items-center justify-center gap-2`}>
-          <span className="text-xl leading-none">+</span> Nuovo evento
-        </button>
+        </div>
       </div>
 
       {/* ── Add Event Sheet ── */}

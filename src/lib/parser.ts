@@ -32,12 +32,10 @@ export function parseLocally(text: string): Omit<CalendarEvent, "id"> {
     ["domenica", 0],
   ]);
 
-  let targetDate = new Date(now);
-  let found = false;
+  const targetDate = new Date(now);
 
   if (lower.includes("domani")) {
     targetDate.setDate(now.getDate() + 1);
-    found = true;
   } else if (!lower.includes("oggi")) {
     for (const [name, day] of dayMap) {
       if (lower.includes(name)) {
@@ -45,7 +43,6 @@ export function parseLocally(text: string): Omit<CalendarEvent, "id"> {
         let diff = day - cd;
         if (diff <= 0) diff += 7;
         targetDate.setDate(now.getDate() + diff);
-        found = true;
         break;
       }
     }

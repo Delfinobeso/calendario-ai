@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import {
   CalendarEvent,
@@ -41,9 +42,13 @@ export default function DayView({
     : { enter: (d: number) => ({ x: d > 0 ? "-40%" : "40%", opacity: 0 }), center: { x: 0, opacity: 1 }, exit: (d: number) => ({ x: d > 0 ? "40%" : "-40%", opacity: 0 }) };
 
   // onPan detects swipe without moving the element (no drag bounce)
+  const swiped = useRef(false);
+  const handlePanStart = () => { swiped.current = false; };
   const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
+    if (swiped.current) return;
     if (Math.abs(info.offset.x) > 50 && Math.abs(info.offset.x) > Math.abs(info.offset.y) * 2) {
-      info.offset.x < 0 ? onSwipeLeft() : onSwipeRight();
+      swiped.current = true;
+      if (info.offset.x < 0) onSwipeLeft(); else onSwipeRight();
     }
   };
 
@@ -58,7 +63,7 @@ export default function DayView({
         {isToday && <p className="text-[11px] text-[var(--color-accent)] mt-0.5 font-medium">Oggi</p>}
       </div>
 
-      <motion.div onPan={handlePan}
+      <motion.div onPanStart={handlePanStart} onPan={handlePan}
         className="flex-1 overflow-y-auto gpu-scroll relative px-3 touch-pan-y">
         <div className="relative" style={{ height: 24 * 60 + "px" }}>
           {HOURS.map((h) => (

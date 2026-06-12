@@ -34,9 +34,13 @@ export default function WeekView({
     ? { enter:{opacity:0,scale:.95}, center:{opacity:1,scale:1}, exit:{opacity:0,scale:1.05} }
     : { enter:(d:number)=>({x:d>0?"-40%":"40%",opacity:0}), center:{x:0,opacity:1}, exit:(d:number)=>({x:d>0?"40%":"-40%",opacity:0}) };
 
+  const swiped = useRef(false);
+  const handlePanStart = () => { swiped.current = false; };
   const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
+    if (swiped.current) return;
     if (Math.abs(info.offset.x) > 50 && Math.abs(info.offset.x) > Math.abs(info.offset.y) * 2) {
-      info.offset.x < 0 ? onSwipeLeft() : onSwipeRight();
+      swiped.current = true;
+      if (info.offset.x < 0) onSwipeLeft(); else onSwipeRight();
     }
   };
 
@@ -49,7 +53,7 @@ export default function WeekView({
         ))}
       </div>
 
-      <motion.div onPan={handlePan} className="flex-1 flex px-4 gap-1.5 min-h-0 gpu-layer">
+      <motion.div onPanStart={handlePanStart} onPan={handlePan} className="flex-1 flex px-4 gap-1.5 min-h-0 gpu-layer">
         {dates.map((date, idx) => {
           const dayEvents = getEventsForDay(events, date);
           const todayCheck = isToday(date);

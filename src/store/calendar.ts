@@ -29,13 +29,12 @@ interface CalendarStore {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 async function fetchAPI(path: string, options?: RequestInit) {
-  if (!API_BASE) return []; // offline mode — return empty
   const res = await fetch(`${API_BASE}${path}`, options);
   if (!res.ok) throw new Error("API error");
   return res.json();
 }
 
-export const useCalendar = create<CalendarStore>((set, get) => ({
+export const useCalendar = create<CalendarStore>((set) => ({
   events: [],
   todayEvents: [],
   loading: false,
@@ -46,6 +45,7 @@ export const useCalendar = create<CalendarStore>((set, get) => ({
   setCurrentWeekStart: (d) => set({ currentWeekStart: d }),
 
   loadEvents: async (start?, end?) => {
+    if (!API_BASE) return; // offline mode — keep local-only events
     set({ loading: true });
     try {
       const params = new URLSearchParams();
@@ -59,6 +59,11 @@ export const useCalendar = create<CalendarStore>((set, get) => ({
   },
 
   addEvent: async (event) => {
+    if (!API_BASE) {
+      const local: CalendarEvent = { ...event, id: Date.now() };
+      set((s) => ({ events: [...s.events, local], todayEvents: [...s.todayEvents, local] }));
+      return local;
+    }
     const created = await fetchAPI("/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,7 +87,13 @@ export const useCalendar = create<CalendarStore>((set, get) => ({
   },
 
   updateEvent: async (id, updates) => {
-    if (!API_BASE) return;
+    if (!API_BASE) {
+      set((s) => ({
+        events: s.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+        todayEvents: s.todayEvents.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+      }));
+      return;
+    }
     const updated = await fetchAPI(`/events/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -95,6 +106,7 @@ export const useCalendar = create<CalendarStore>((set, get) => ({
   },
 
   loadToday: async () => {
+    if (!API_BASE) return;
     try {
       const events = await fetchAPI("/today");
       set({ todayEvents: events });

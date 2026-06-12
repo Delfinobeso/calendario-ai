@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { motion } from "framer-motion";
 import { CalendarEvent, isToday, isSameDay } from "@/store/calendar";
 
@@ -44,9 +45,13 @@ export default function MonthView({
     // next (d<0): enter from below, exit to above. prev (d>0): enter from above, exit to below
     : { enter: (d: number) => ({ y: d > 0 ? "-50%" : "50%", opacity: 0 }), center: { y: 0, opacity: 1 }, exit: (d: number) => ({ y: d > 0 ? "50%" : "-50%", opacity: 0 }) };
 
+  const swiped = useRef(false);
+  const handlePanStart = () => { swiped.current = false; };
   const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
+    if (swiped.current) return;
     if (Math.abs(info.offset.y) > 50 && Math.abs(info.offset.y) > Math.abs(info.offset.x) * 2) {
-      info.offset.y < 0 ? onSwipeUp() : onSwipeDown();
+      swiped.current = true;
+      if (info.offset.y < 0) onSwipeUp(); else onSwipeDown();
     }
   };
 
@@ -63,7 +68,7 @@ export default function MonthView({
         ))}
       </div>
 
-      <motion.div onPan={handlePan} className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0 gpu-layer">
+      <motion.div onPanStart={handlePanStart} onPan={handlePan} className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0 gpu-layer">
         {days.map((date, idx) => {
           const dayEvents = events.filter(e => isSameDay(new Date(e.start_time), date));
           const inMonth = date.getMonth() === month;
