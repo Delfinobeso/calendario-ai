@@ -32,10 +32,10 @@ export default function WeekView({
   const weights = dates.map((d, i) => {
     const n = dayEventLists[i].length;
     const past = d.toDateString() < todayStr && !isToday(d);
-    if (past || n === 0) return i >= 5 ? 0.3 : 0.4;
-    if (n === 1) return i >= 5 ? 0.9 : 1.1;
-    if (n === 2) return i >= 5 ? 1.2 : 1.5;
-    return i >= 5 ? 1.5 : 1.9;
+    if (past || n === 0) return i >= 5 ? 0.7 : 0.75;
+    if (n === 1) return i >= 5 ? 0.95 : 1.05;
+    if (n === 2) return i >= 5 ? 1.1 : 1.2;
+    return i >= 5 ? 1.25 : 1.4;
   });
 
   const [mounted, setMounted] = useState(clientHydrated);
