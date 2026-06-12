@@ -33,7 +33,9 @@ html {
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
   overflow: hidden;
-  height: 100%;
+  /* height:100% rompe viewport-fit=cover su iOS: il fixed/100% si ferma
+     prima della home indicator zone. 100vh copre l'intera area fisica. */
+  height: 100vh;
   /* Prevent iOS elastic bounce */
   position: fixed;
   width: 100%;
@@ -42,7 +44,7 @@ html {
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  height: 100vh;
   overflow: hidden;
 }
 

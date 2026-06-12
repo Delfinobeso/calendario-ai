@@ -181,7 +181,7 @@ export default function Home() {
 
   return (
     <div
-      className="h-dvh flex flex-col overflow-hidden bg-[var(--color-surface)]"
+      className="h-screen flex flex-col overflow-hidden bg-[var(--color-surface)]"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       {...pinch}
     >
