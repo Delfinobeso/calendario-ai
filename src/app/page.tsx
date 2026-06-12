@@ -166,6 +166,7 @@ export default function Home() {
   const handleOpenNewEvent = () => { resetForm(); openSheet(); };
 
   // ── AI submit ──
+  const handleAISubmit = async () => {
     const text = aiInput.trim(); if (!text) return;
     setAiLoading(true); setAiResult(null);
     try {
