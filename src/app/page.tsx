@@ -26,10 +26,6 @@ const MONTHS_IT = [
   "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
 ];
 
-const ZOOM_LABELS: Record<ZoomLevel, string> = {
-  year: "Anno", month: "Mese", week: "Settimana", day: "Giorno",
-};
-
 function formatEventDate(ev: CalendarEvent): string {
   return new Date(ev.start_time).toLocaleDateString("it", { weekday: "long", day: "numeric", month: "long" });
 }
@@ -274,16 +270,9 @@ export default function Home() {
       {/* Bottom bar */}
       <div className="fixed bottom-0 left-0 right-0 z-30 px-4 pt-2 bg-[var(--color-surface)] border-t border-[var(--color-surface-tertiary)]/20"
         style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom, 0px))" }}>
-        <div className="flex gap-3 items-stretch">
-          {zoom !== "year" && (
-            <button onClick={zoomOut} className="touch-target py-2.5 px-4 bg-[var(--color-surface-secondary)] rounded-2xl text-[var(--color-text-secondary)] text-[15px] font-semibold active:scale-[0.97] transition-transform flex items-center justify-center gap-1.5">
-              <span className="text-base">🤏</span>{ZOOM_LABELS[zoom === "day" ? "week" : zoom === "week" ? "month" : "year"]}
-            </button>
-          )}
-          <button onClick={handleOpenNewEvent} className="flex-1 touch-target py-2.5 bg-[var(--color-accent)] text-black rounded-2xl font-bold text-[16px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
-            <span className="text-lg leading-none">+</span> Nuovo evento
-          </button>
-        </div>
+        <button onClick={handleOpenNewEvent} className="w-full touch-target py-2.5 bg-[var(--color-accent)] text-black rounded-2xl font-bold text-[16px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
+          <span className="text-lg leading-none">+</span> Nuovo evento
+        </button>
       </div>
 
       {/* ═══ SHEETS ═══ */}
