@@ -222,16 +222,16 @@ export default function Home() {
       </header>
 
       {/* AI Input */}
-      <div className="shrink-0 px-5 pb-2">
+      <div className="shrink-0 px-4 pb-2">
         {voiceActive ? (
           <VoiceInput onDone={() => setVoiceActive(false)} />
         ) : (
-          <div className="flex gap-2 items-center">
-            <div className="flex-1 flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
-              <span className="pl-3 text-base">✨</span>
+          <div className="flex gap-1.5 items-center">
+            <div className="flex-1 flex items-center bg-[var(--color-surface-secondary)] rounded-xl px-2.5 py-1 border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200 min-w-0">
+              <span className="text-sm shrink-0">✨</span>
               <input
-                className="flex-1 bg-transparent py-2.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
-                placeholder="es. domani alle 15 riunione con Marco"
+                className="flex-1 bg-transparent px-2 py-2 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[14px] min-w-0"
+                placeholder="Scrivi o detta un evento..."
                 value={aiInput}
                 onChange={(e) => setAiInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAISubmit()}
@@ -240,17 +240,17 @@ export default function Home() {
               <button
                 onClick={handleAISubmit}
                 disabled={aiLoading || !aiInput.trim()}
-                className="touch-target px-4 py-2 bg-[var(--color-accent)] text-black font-semibold rounded-xl text-[14px] disabled:opacity-30 shrink-0 active:scale-95"
+                className="touch-target px-3 py-1.5 bg-[var(--color-accent)] text-black font-semibold rounded-lg text-[13px] disabled:opacity-30 shrink-0 active:scale-95"
               >
                 {aiLoading ? "···" : "Aggiungi"}
               </button>
             </div>
             <button
               onClick={() => setVoiceActive(true)}
-              className="touch-target w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] active:scale-95 shrink-0"
+              className="touch-target w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] active:scale-95 shrink-0"
               aria-label="Input vocale"
             >
-              <span className="text-lg">🎤</span>
+              <span className="text-base">🎤</span>
             </button>
           </div>
         )}
@@ -260,7 +260,7 @@ export default function Home() {
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className={`text-xs mt-1.5 text-center font-medium ${
+              className={`text-[11px] mt-1 text-center font-medium ${
                 aiResult.startsWith("✅") || aiResult.startsWith("🎙️")
                   ? "text-[var(--color-success)]"
                   : aiResult.startsWith("⚠")

@@ -155,14 +155,14 @@ export default function VoiceInput({ onDone }: Props) {
 
   if (recording) {
     return (
-      <div className="flex-1 flex items-center gap-2 bg-[var(--color-surface-secondary)] rounded-2xl px-4 py-1 border border-red-500/50">
-        <span className="text-red-400 text-xs font-medium animate-pulse shrink-0">REC</span>
-        <canvas ref={canvasRef} width={300} height={40} className="flex-1 h-10" />
+      <div className="flex-1 flex items-center gap-1.5 bg-[var(--color-surface-secondary)] rounded-xl px-2.5 py-1 border border-red-500/50 min-w-0">
+        <span className="text-red-400 text-[10px] font-semibold animate-pulse shrink-0">REC</span>
+        <canvas ref={canvasRef} width={240} height={32} className="flex-1 h-8" />
         <button
           onClick={stopRecording}
-          className="touch-target w-8 h-8 flex items-center justify-center rounded-full bg-red-500 active:scale-90 shrink-0"
+          className="touch-target w-6 h-6 flex items-center justify-center rounded-full bg-red-500 active:scale-90 shrink-0"
         >
-          <span className="text-white text-sm">■</span>
+          <span className="text-white text-[10px]">■</span>
         </button>
       </div>
     );
@@ -170,9 +170,9 @@ export default function VoiceInput({ onDone }: Props) {
 
   if (processing) {
     return (
-      <div className="flex-1 flex items-center gap-2 bg-[var(--color-surface-secondary)] rounded-2xl px-4 py-2.5">
-        <div className="w-4 h-4 rounded-full border-2 border-[var(--color-accent)] border-t-transparent animate-spin shrink-0" />
-        <span className="text-[var(--color-text-secondary)] text-[14px]">Trascrivendo...</span>
+      <div className="flex-1 flex items-center gap-2 bg-[var(--color-surface-secondary)] rounded-xl px-3 py-2">
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-accent)] border-t-transparent animate-spin shrink-0" />
+        <span className="text-[var(--color-text-secondary)] text-[13px]">Trascrivendo...</span>
       </div>
     );
   }
@@ -180,10 +180,10 @@ export default function VoiceInput({ onDone }: Props) {
   return (
     <button
       onClick={startRecording}
-      className="touch-target w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] active:scale-95 shrink-0"
+      className="touch-target w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] active:scale-95 shrink-0"
       aria-label="Registra audio"
     >
-      <span className="text-lg">🎤</span>
+      <span className="text-base">🎤</span>
     </button>
   );
 }
