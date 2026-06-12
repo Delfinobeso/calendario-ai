@@ -161,6 +161,7 @@ export default function Home() {
   const [form, setForm] = useState(blankForm);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const resetForm = useCallback(() => setForm(blankForm()), []);
+  const [voiceActive, setVoiceActive] = useState(false);
   const closeAndResetSheet = useCallback(() => { resetForm(); closeSheet(); }, [resetForm, closeSheet]);
   const closeAndResetEdit = useCallback(() => { setConfirmDelete(false); resetForm(); closeEdit(); }, [resetForm, closeEdit]);
   const handleOpenNewEvent = () => { resetForm(); openSheet(); };
@@ -222,27 +223,37 @@ export default function Home() {
 
       {/* AI Input */}
       <div className="shrink-0 px-5 pb-2">
-        <div className="flex gap-2 items-center">
-          <div className="flex-1 flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
-            <span className="pl-3 text-base">✨</span>
-            <input
-              className="flex-1 bg-transparent py-2.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
-              placeholder="es. domani alle 15 riunione con Marco"
-              value={aiInput}
-              onChange={(e) => setAiInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAISubmit()}
-              enterKeyHint="go"
-            />
+        {voiceActive ? (
+          <VoiceInput onDone={() => setVoiceActive(false)} />
+        ) : (
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 flex gap-2 bg-[var(--color-surface-secondary)] rounded-2xl p-1 items-center border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200">
+              <span className="pl-3 text-base">✨</span>
+              <input
+                className="flex-1 bg-transparent py-2.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px]"
+                placeholder="es. domani alle 15 riunione con Marco"
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAISubmit()}
+                enterKeyHint="go"
+              />
+              <button
+                onClick={handleAISubmit}
+                disabled={aiLoading || !aiInput.trim()}
+                className="touch-target px-4 py-2 bg-[var(--color-accent)] text-black font-semibold rounded-xl text-[14px] disabled:opacity-30 shrink-0 active:scale-95"
+              >
+                {aiLoading ? "···" : "Aggiungi"}
+              </button>
+            </div>
             <button
-              onClick={handleAISubmit}
-              disabled={aiLoading || !aiInput.trim()}
-              className="touch-target px-4 py-2 bg-[var(--color-accent)] text-black font-semibold rounded-xl text-[14px] disabled:opacity-30 shrink-0 active:scale-95"
+              onClick={() => setVoiceActive(true)}
+              className="touch-target w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] active:scale-95 shrink-0"
+              aria-label="Input vocale"
             >
-              {aiLoading ? "···" : "Aggiungi"}
+              <span className="text-lg">🎤</span>
             </button>
           </div>
-          <VoiceInput onEventAdded={() => {}} />
-        </div>
+        )}
         <AnimatePresence>
           {aiResult && (
             <motion.p
