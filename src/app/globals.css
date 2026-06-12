@@ -14,7 +14,7 @@
   --color-today: oklch(0.80 0.19 100 / 0.12);
   --color-weekend: oklch(0.16 0.01 95);
   --sat: env(safe-area-inset-top, 0px);
-  --sab: env(safe-area-inset-bottom, 0px);
+  --sab: min(34px, env(safe-area-inset-bottom, 0px));
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
 }
@@ -89,6 +89,8 @@ input[type="date"], input[type="time"] {
   color-scheme: dark;
   -webkit-appearance: none;
   min-height: 44px;
+  color: var(--color-text-primary);
+  -webkit-text-fill-color: var(--color-text-primary);
 }
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator {

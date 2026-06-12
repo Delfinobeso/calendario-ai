@@ -224,7 +224,7 @@ export default function Home() {
       </div>
 
       {/* ── Zoom view ── */}
-      <div className="flex-1 min-h-0 overflow-hidden gpu-layer" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
+      <div className="flex-1 min-h-0 overflow-hidden gpu-layer" style={{ paddingBottom: "calc(72px + var(--sab))" }}>
         <AnimatePresence mode="wait" custom={swipeDir}>
           {zoom === "year" && (
             <YearView
@@ -257,7 +257,7 @@ export default function Home() {
       {/* ── Bottom bar ── */}
       <div
         className="fixed bottom-0 left-0 right-0 z-20 px-4 pt-2 bg-[var(--color-surface)] border-t border-[var(--color-surface-tertiary)]/20"
-        style={{ paddingBottom: "calc(8px + env(safe-area-inset-bottom, 0px))" }}
+        style={{ paddingBottom: "calc(8px + var(--sab))" }}
       >
         <div className="flex gap-3 items-stretch">
           {zoom !== "year" && (
@@ -290,9 +290,9 @@ export default function Home() {
                 <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
                   placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
                 <div className="flex gap-3">
-                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px] color-scheme-dark"
+                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
                     value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px] color-scheme-dark"
+                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
                     value={formTime} onChange={(e) => setFormTime(e.target.value)} />
                 </div>
                 <button type="submit" className="w-full bg-[var(--color-accent)] text-black font-bold rounded-xl py-4 active:scale-[0.98] transition-transform text-[16px]">
@@ -321,9 +321,9 @@ export default function Home() {
                 <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[16px]"
                   placeholder="Luogo (opzionale)" value={formLoc} onChange={(e) => setFormLoc(e.target.value)} enterKeyHint="next" />
                 <div className="flex gap-3">
-                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px] color-scheme-dark"
+                  <input type="date" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
                     value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px] color-scheme-dark"
+                  <input type="time" className="flex-1 bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none text-[16px]"
                     value={formTime} onChange={(e) => setFormTime(e.target.value)} />
                 </div>
                 <div className="flex gap-3">
