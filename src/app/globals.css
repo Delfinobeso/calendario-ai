@@ -34,11 +34,11 @@ html {
   overscroll-behavior: none;
   overflow: hidden;
   /* height:100% rompe viewport-fit=cover su iOS: il fixed/100% si ferma
-     prima della home indicator zone. 100vh copre l'intera area fisica. */
+     prima della home indicator zone. 100vh copre l'intera area fisica.
+     position:fixed qui interferiva col containing block dei discendenti
+     fixed in WKWebView (PWA) — il contenuto usa .fixed.inset-0 per il
+     bounce-prevention, niente serve qui. */
   height: 100vh;
-  /* Prevent iOS elastic bounce */
-  position: fixed;
-  width: 100%;
 }
 
 body {
