@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useSettings,
@@ -11,16 +11,28 @@ import {
 
 export default function Settings() {
   const [open, setOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
   const {
     theme, font, profile,
     setTheme, setFont, setProfile,
   } = useSettings();
 
-  const [editName, setEditName] = useState(profile.name);
-  const [editRole, setEditRole] = useState(profile.role);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState("");
+
+  // Sync form fields from store when sheet opens (not just on mount)
+  useEffect(() => {
+    if (open) {
+      setEditName(profile.name);
+      setEditRole(profile.role);
+      setSaved(false);
+    }
+  }, [open, profile.name, profile.role]);
 
   const handleSaveProfile = () => {
     setProfile({ name: editName, role: editRole });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
@@ -63,9 +75,11 @@ export default function Settings() {
                   <Field label="Ruolo" value={editRole} onChange={setEditRole} placeholder="es. Geometra" />
                   <button
                     onClick={handleSaveProfile}
-                    className="w-full py-3 bg-[var(--color-accent)] text-black font-semibold rounded-xl text-[15px] active:scale-[0.98] transition-transform"
+                    className={`w-full py-3 font-semibold rounded-xl text-[15px] active:scale-[0.98] transition-all ${
+                      saved ? "bg-[var(--color-success)] text-white" : "bg-[var(--color-accent)] text-black"
+                    }`}
                   >
-                    Salva profilo
+                    {saved ? "✓ Salvato" : "Salva profilo"}
                   </button>
                 </div>
               </Section>
