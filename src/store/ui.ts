@@ -3,10 +3,13 @@
 import { create } from "zustand";
 import type { CalendarEvent } from "./calendar";
 
+export type ToastKind = "success" | "warning" | "error";
+export interface AiToast { kind: ToastKind; text: string }
+
 interface UIStore {
   aiInput: string;
   aiLoading: boolean;
-  aiResult: string | null;
+  aiResult: AiToast | null;
   sheetOpen: boolean;
   deleteConfirm: number | null;
   editEvent: CalendarEvent | null;
@@ -14,7 +17,7 @@ interface UIStore {
   error: string | null;
   setAiInput: (v: string) => void;
   setAiLoading: (v: boolean) => void;
-  setAiResult: (v: string | null) => void;
+  setAiResult: (v: AiToast | null) => void;
   openSheet: () => void;
   closeSheet: () => void;
   setDeleteConfirm: (id: number | null) => void;

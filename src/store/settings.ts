@@ -5,7 +5,6 @@ import { persist } from "zustand/middleware";
 
 export type Theme = "dark" | "light" | "system";
 export type Font = "sans" | "serif" | "system";
-export type Language = "it" | "en";
 
 export interface UserProfile {
   name: string;
@@ -15,11 +14,9 @@ export interface UserProfile {
 interface SettingsStore {
   theme: Theme;
   font: Font;
-  language: Language;
   profile: UserProfile;
   setTheme: (t: Theme) => void;
   setFont: (f: Font) => void;
-  setLanguage: (l: Language) => void;
   setProfile: (p: Partial<UserProfile>) => void;
   syncProfileFromBackend: () => Promise<void>;
   saveProfileToBackend: () => Promise<void>;
@@ -50,12 +47,10 @@ export const useSettings = create<SettingsStore>()(
     (set, get) => ({
       theme: "dark",
       font: "sans",
-      language: "it",
-      profile: { name: "", role: "Geometra" },
+      profile: { name: "", role: "" },
 
       setTheme: (theme) => set({ theme }),
       setFont: (font) => set({ font }),
-      setLanguage: (language) => set({ language }),
       setProfile: (p) => {
         set((s) => ({ profile: { ...s.profile, ...p } }));
         // Auto-save to backend after update
@@ -68,7 +63,7 @@ export const useSettings = create<SettingsStore>()(
           const res = await fetch(`${API_BASE}/profile`);
           if (res.ok) {
             const data = await res.json();
-            set({ profile: { name: data.name || "", role: data.role || "Geometra" } });
+            set({ profile: { name: data.name || "", role: data.role || "" } });
           }
         } catch { /* offline — keep localStorage */ }
       },
@@ -89,7 +84,6 @@ export const useSettings = create<SettingsStore>()(
       partialize: (s) => ({
         theme: s.theme,
         font: s.font,
-        language: s.language,
         profile: s.profile,
       }),
     }

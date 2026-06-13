@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { CalendarEvent, isToday, isSameDay } from "@/store/calendar";
-import { getColor } from "@/lib/timeline";
+import { getEventColor } from "@/lib/timeline";
 
 const MONTHS_IT = [
   "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
@@ -87,14 +87,17 @@ export default function MonthView({
               </span>
               {/* Event chips — tap opens detail (Google Calendar style) */}
               <div className="flex flex-col gap-0.5 mt-0.5 w-full px-0.5 min-h-0">
-                {dayEvents.slice(0, 3).map((ev, ei) => (
-                  <button key={ei}
-                    onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }}
-                    className="w-full rounded-sm px-1 py-px text-[9px] font-semibold leading-tight truncate text-left active:opacity-70 transition-opacity"
-                    style={{ background: getColor(ei) + "22", color: getColor(ei) }}>
-                    {ev.title}
-                  </button>
-                ))}
+                {dayEvents.slice(0, 3).map((ev, ei) => {
+                  const c = getEventColor(ev);
+                  return (
+                    <button key={ev.id ?? ei}
+                      onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }}
+                      className="w-full rounded-sm px-1 py-px text-[9px] font-semibold leading-tight truncate text-left active:opacity-70 transition-opacity"
+                      style={{ background: c + "22", color: c }}>
+                      {ev.title}
+                    </button>
+                  );
+                })}
                 {dayEvents.length > 3 && (
                   <span className="text-[9px] text-[var(--color-text-tertiary)] text-center font-medium">
                     +{dayEvents.length - 3}

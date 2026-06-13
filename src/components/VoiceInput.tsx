@@ -60,7 +60,7 @@ export default function VoiceInput({ onDone, active }: Props) {
 
         const blob = new Blob(chunksRef.current, { type: mimeType });
         if (blob.size < 200) {
-          setAiResult("❌ Registrazione troppo breve.");
+          setAiResult({ kind: "error", text: "Registrazione troppo breve." });
           setTimeout(() => { setAiResult(null); onDone(); }, 3000);
           return;
         }
@@ -78,7 +78,7 @@ export default function VoiceInput({ onDone, active }: Props) {
           if (res.ok) {
             const data = await res.json();
             if (data.error) {
-              setAiResult(`❌ ${data.error}`);
+              setAiResult({ kind: "error", text: data.error });
             } else {
               const parsed = data.event;
               await addEvent({
@@ -91,18 +91,19 @@ export default function VoiceInput({ onDone, active }: Props) {
               });
               const conflicts = data.conflicts || [];
               if (conflicts.length) {
-                setAiResult(
-                  `⚠️ Conflitto con: ${conflicts.map((c: any) => c.title).join(", ")}. Aggiunto comunque.`
-                );
+                setAiResult({
+                  kind: "warning",
+                  text: `Conflitto con: ${conflicts.map((c: any) => c.title).join(", ")}. Aggiunto comunque.`,
+                });
               } else {
-                setAiResult(`🎙️ "${parsed.title}" aggiunto`);
+                setAiResult({ kind: "success", text: `"${parsed.title}" aggiunto` });
               }
             }
           } else {
-            setAiResult("❌ Errore nella trascrizione.");
+            setAiResult({ kind: "error", text: "Errore nella trascrizione." });
           }
         } catch {
-          setAiResult("❌ Timeout o errore di rete.");
+          setAiResult({ kind: "error", text: "Timeout o errore di rete." });
         }
         setProcessing(false);
         setTimeout(() => { setAiResult(null); onDone(); }, 4000);
@@ -114,7 +115,7 @@ export default function VoiceInput({ onDone, active }: Props) {
       setElapsed(0);
       intervalRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     } catch {
-      setAiResult("❌ Microfono non disponibile.");
+      setAiResult({ kind: "error", text: "Microfono non disponibile." });
       setTimeout(() => { setAiResult(null); onDone(); }, 3000);
     }
   }, [addEvent, setAiResult, onDone]);

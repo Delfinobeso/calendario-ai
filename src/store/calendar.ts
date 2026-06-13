@@ -82,8 +82,12 @@ export const useCalendar = create<CalendarStore>((set) => ({
 
   removeEvent: async (id) => {
     if (API_BASE) {
-      try { await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" }); }
-      catch { /* optimistic delete — already removed from state below */ }
+      try {
+        const res = await fetch(`${API_BASE}/events/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("API error");
+      } catch {
+        throw new Error("Impossibile eliminare l'evento. Verifica la connessione.");
+      }
     }
     set((s) => ({
       events: s.events.filter((e) => e.id !== id),

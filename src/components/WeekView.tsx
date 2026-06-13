@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   CalendarEvent, getWeekDates, isToday, getEventsForDay, formatTime,
 } from "@/store/calendar";
-import { getColor } from "@/lib/timeline";
+import { getEventColor, getEventMinutes } from "@/lib/timeline";
 
 const WEEKDAY_LABELS = ["LU", "MA", "ME", "GI", "VE", "SA", "DO"];
 const HOUR_TICKS = [0, 6, 12, 18, 24];
@@ -22,7 +22,11 @@ export default function WeekView({
   weekStart: Date; events: CalendarEvent[];
   onTapDay: (d: Date) => void; onTapEvent: (ev: CalendarEvent) => void;
 }) {
-  const now = new Date();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const todayStr = now.toDateString();
 
@@ -63,7 +67,7 @@ export default function WeekView({
         if (dayEvents.length === 0) {
           return (
             <button key={date.toISOString()} ref={todayCheck ? todayRef : undefined}
-              onClick={() => { if (!isPast) onTapDay(date); }}
+              onClick={() => onTapDay(date)}
               className={`flex items-center gap-2 py-1.5 rounded-xl text-left transition-colors active:bg-[var(--color-surface-secondary)] ${isPast ? "opacity-40" : ""}`}>
               {dayLabel}
               <div className="flex-1 h-px bg-[var(--color-surface-tertiary)]" />
@@ -75,7 +79,7 @@ export default function WeekView({
 
         return (
           <button key={date.toISOString()} ref={todayCheck ? todayRef : undefined}
-            onClick={() => { if (!isPast) onTapDay(date); }}
+            onClick={() => onTapDay(date)}
             className={`text-left rounded-2xl px-3 py-2.5 transition-colors active:bg-[var(--color-surface-secondary)] ${
               todayCheck ? "bg-[var(--color-today)] ring-1 ring-[var(--color-accent)]/20" : "bg-[var(--color-surface-secondary)]/60"} ${isPast ? "opacity-60" : ""}`}>
             <div className="flex items-center gap-2 mb-2">{dayLabel}</div>
@@ -94,10 +98,8 @@ export default function WeekView({
                   style={{ left: `${(hr / 24) * 100}%`, top: TICK_H, bottom: 0 }} />
               ))}
               {dayEvents.map((ev, ei) => {
-                const s = new Date(ev.start_time), e = new Date(ev.end_time);
-                const sm = s.getHours() * 60 + s.getMinutes();
-                const em = Math.max(sm + 30, e.getHours() * 60 + e.getMinutes());
-                const c = getColor(ei);
+                const { startMin: sm, endMin: em } = getEventMinutes(ev);
+                const c = getEventColor(ev);
                 return (
                   <div key={ev.id || ei} className="absolute rounded-full"
                     style={{
@@ -117,7 +119,7 @@ export default function WeekView({
             {/* Lista eventi */}
             <div className="flex flex-col gap-0.5">
               {dayEvents.map((ev, ei) => {
-                const c = getColor(ei);
+                const c = getEventColor(ev);
                 return (
                   <div key={ev.id || ei}
                     onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }}

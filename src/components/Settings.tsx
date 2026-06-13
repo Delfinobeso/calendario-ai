@@ -8,6 +8,8 @@ import {
   type Font,
   FONT_FAMILIES,
 } from "@/store/settings";
+import { SHEET_TRANSITION, BACKDROP_TRANSITION } from "@/lib/motion";
+import { CheckIcon, MoonIcon, SunIcon, AutoIcon } from "@/components/icons";
 
 export default function Settings() {
   const [open, setOpen] = useState(false);
@@ -55,12 +57,13 @@ export default function Settings() {
           <>
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={BACKDROP_TRANSITION}
               className="fixed inset-0 bg-black/40 sheet-blur z-40"
               onClick={() => setOpen(false)}
             />
             <motion.div
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              transition={SHEET_TRANSITION}
               className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[calc(var(--app-vh)*0.9)] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30"
             >
               <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
@@ -75,11 +78,11 @@ export default function Settings() {
                   <Field label="Ruolo" value={editRole} onChange={setEditRole} placeholder="es. Geometra" />
                   <button
                     onClick={handleSaveProfile}
-                    className={`w-full py-3 font-semibold rounded-xl text-[15px] active:scale-[0.98] transition-all ${
+                    className={`w-full py-3 font-semibold rounded-xl text-[15px] active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 ${
                       saved ? "bg-[var(--color-success)] text-white" : "bg-[var(--color-accent)] text-black"
                     }`}
                   >
-                    {saved ? "✓ Salvato" : "Salva profilo"}
+                    {saved ? (<><CheckIcon /> Salvato</>) : "Salva profilo"}
                   </button>
                 </div>
               </Section>
@@ -135,26 +138,26 @@ function Field({
 }
 
 function ThemePicker({ selected, onChange }: { selected: Theme; onChange: (t: Theme) => void }) {
-  const options: { key: Theme; label: string; icon: string }[] = [
-    { key: "dark", label: "Scuro", icon: "🌙" },
-    { key: "light", label: "Chiaro", icon: "☀️" },
-    { key: "system", label: "Auto", icon: "⚙️" },
+  const options: { key: Theme; label: string; Icon: typeof MoonIcon }[] = [
+    { key: "dark", label: "Scuro", Icon: MoonIcon },
+    { key: "light", label: "Chiaro", Icon: SunIcon },
+    { key: "system", label: "Auto", Icon: AutoIcon },
   ];
 
   return (
     <div className="flex gap-2">
-      {options.map((o) => (
+      {options.map(({ key, label, Icon }) => (
         <button
-          key={o.key}
-          onClick={() => onChange(o.key)}
-          className={`flex-1 py-3 rounded-xl font-semibold text-[15px] transition-all active:scale-[0.97] ${
-            selected === o.key
+          key={key}
+          onClick={() => onChange(key)}
+          className={`flex-1 py-3 rounded-xl font-semibold text-[15px] transition-all active:scale-[0.97] flex items-center justify-center gap-1.5 ${
+            selected === key
               ? "bg-[var(--color-accent)] text-black"
               : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
           }`}
         >
-          <span className="mr-1.5">{o.icon}</span>
-          {o.label}
+          <Icon />
+          {label}
         </button>
       ))}
     </div>

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CalendarEvent, getEventsForDay, formatTime } from "@/store/calendar";
-import { buildSegments, computeTops, timeToY, getColor } from "@/lib/timeline";
+import { buildSegments, computeTops, timeToY, getEventColor, getEventMinutes } from "@/lib/timeline";
+import { CalendarEmptyIcon, PinIcon } from "@/components/icons";
 
 export default function DayView({
   date, events,
@@ -15,7 +16,11 @@ export default function DayView({
   const dayEvents = getEventsForDay(events, date)
     .slice()
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-  const now = new Date();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
   const isToday = date.toDateString() === now.toDateString();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
@@ -44,7 +49,7 @@ export default function DayView({
       <div ref={scrollRef} className="flex-1 overflow-y-auto gpu-scroll relative px-3 touch-pan-y">
         {dayEvents.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-8 pointer-events-none">
-            <span className="text-3xl mb-2 opacity-40">🗓️</span>
+            <CalendarEmptyIcon className="mb-2 opacity-40 text-[var(--color-text-secondary)]" />
             <p className="text-[14px] text-[var(--color-text-secondary)] font-medium">Nessun evento</p>
           </div>
         )}
@@ -66,12 +71,10 @@ export default function DayView({
             )
           )}
           {dayEvents.map((ev, ei) => {
-            const s = new Date(ev.start_time), e = new Date(ev.end_time);
-            const sm = s.getHours() * 60 + s.getMinutes();
-            const em = Math.max(sm + 30, e.getHours() * 60 + e.getMinutes());
+            const { startMin: sm, endMin: em } = getEventMinutes(ev);
             const top = timeToY(segments, tops, sm);
             const height = Math.max(36, timeToY(segments, tops, em) - top);
-            const c = getColor(ei);
+            const c = getEventColor(ev);
             return (
               <motion.div key={ev.id || ei} ref={ei === 0 ? firstEventRef : undefined}
                 initial={false} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
@@ -81,7 +84,7 @@ export default function DayView({
                 onClick={() => onTapEvent(ev)}>
                 <div className="text-[12px] font-semibold leading-tight truncate">{ev.title}</div>
                 <div className="text-[11px] opacity-70 leading-tight mt-0.5">{formatTime(ev.start_time)} – {formatTime(ev.end_time)}</div>
-                {ev.location && <div className="text-[11px] opacity-50 leading-tight truncate mt-0.5">📍 {ev.location}</div>}
+                {ev.location && <div className="text-[11px] opacity-50 leading-tight truncate mt-0.5 flex items-center gap-1"><PinIcon className="shrink-0" /> {ev.location}</div>}
               </motion.div>
             );
           })}
