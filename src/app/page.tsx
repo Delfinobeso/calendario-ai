@@ -79,6 +79,14 @@ function SendIcon() {
     </svg>
   );
 }
+function SparkleIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={className} aria-hidden="true">
+      <path d="M6.5 1c.35 2.3 1.4 3.35 3.7 3.7-2.3.35-3.35 1.4-3.7 3.7-.35-2.3-1.4-3.35-3.7-3.7C5.1 4.35 6.15 3.3 6.5 1z" fill="currentColor" />
+      <path d="M12 7.5c.2 1.3.85 1.95 2.15 2.15-1.3.2-1.95.85-2.15 2.15-.2-1.3-.85-1.95-2.15-2.15 1.3-.2 1.95-.85 2.15-2.15z" fill="currentColor" opacity="0.55" />
+    </svg>
+  );
+}
 
 export default function Home() {
   const { events, addEvent, removeEvent, loadEvents, updateEvent } = useCalendar();
@@ -270,7 +278,7 @@ export default function Home() {
             <VoiceInput active={voiceActive} onDone={handleVoiceDone} />
           ) : (
             <>
-              <span className="text-base shrink-0 select-none">✨</span>
+              <SparkleIcon className="shrink-0 text-[var(--color-text-secondary)]" />
               <input
                 className="flex-1 bg-transparent py-2.5 px-1.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px] min-w-0"
                 placeholder="Scrivi un evento..."
