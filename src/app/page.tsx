@@ -263,7 +263,7 @@ export default function Home() {
 
       {/* AI Input */}
       <div className="shrink-0 px-4 pb-2">
-        <div className={`flex items-center gap-1.5 bg-[var(--color-surface-secondary)] rounded-full px-2.5 border transition-colors duration-200 min-w-0 ${
+        <div className={`flex items-center gap-1.5 bg-[var(--color-surface-secondary)] rounded-full px-1.5 py-1.5 border transition-colors duration-200 min-w-0 ${
           voiceActive ? "border-[var(--color-danger)]/40" : "border-transparent focus-within:border-[var(--color-accent)]/40"
         }`}>
           {voiceBusy ? (
