@@ -79,9 +79,25 @@ export default function Home() {
   const [focusDate, setFocusDate] = useState(today);
   const [swipeKey, setSwipeKey] = useState(0); // force re-mount carousel on window shift
 
-  // Voice input via long-press
+  // Voice input via waveform toggle
   const [voiceActive, setVoiceActive] = useState(false);
-  const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+
+  const handleVoiceToggle = useCallback(() => {
+    if (voiceActive) {
+      // Stop recording — VoiceInput's active effect will handle it
+      setVoiceActive(false);
+      // voiceBusy stays true until onDone
+    } else {
+      setVoiceActive(true);
+      setVoiceBusy(true);
+    }
+  }, [voiceActive]);
+
+  const handleVoiceDone = useCallback(() => {
+    setVoiceActive(false);
+    setVoiceBusy(false);
+  }, []);
 
   const focusYear = focusDate.getFullYear();
   const focusMonth = focusDate.getMonth();
@@ -227,22 +243,24 @@ export default function Home() {
       {/* AI Input */}
       <div className="shrink-0 px-4 pb-2">
         <div className="flex items-center bg-[var(--color-surface-secondary)] rounded-xl px-2.5 py-1 border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200 min-w-0">
-          {voiceActive ? (
-            <VoiceInput autoStart onDone={() => setVoiceActive(false)} />
+          {/* Waveform toggle icon — always visible */}
+          <button
+            onClick={handleVoiceToggle}
+            className={`touch-target w-7 h-7 flex items-center justify-center shrink-0 active:scale-90 transition-transform ${voiceActive ? "text-[var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}
+            aria-label={voiceActive ? "Ferma registrazione" : "Registra audio"}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="4" y="3" width="1.5" height="10" rx="0.75" fill="currentColor" className={voiceActive ? "animate-pulse" : ""} />
+              <rect x="6.5" y="1.5" width="1.5" height="13" rx="0.75" fill="currentColor" className={voiceActive ? "animate-pulse" : ""} />
+              <rect x="9" y="4.5" width="1.5" height="7" rx="0.75" fill="currentColor" opacity={voiceActive ? "0.8" : "0.6"} />
+              <rect x="11.5" y="6" width="1.5" height="4" rx="0.75" fill="currentColor" opacity={voiceActive ? "0.5" : "0.3"} />
+            </svg>
+          </button>
+          {voiceBusy ? (
+            <VoiceInput active={voiceActive} onDone={handleVoiceDone} />
           ) : (
             <>
-              <span
-                className="text-sm shrink-0 select-none"
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  voiceTimerRef.current = setTimeout(() => setVoiceActive(true), 400);
-                }}
-                onPointerUp={() => { if (voiceTimerRef.current) { clearTimeout(voiceTimerRef.current); voiceTimerRef.current = null; } }}
-                onPointerLeave={() => { if (voiceTimerRef.current) { clearTimeout(voiceTimerRef.current); voiceTimerRef.current = null; } }}
-                onPointerCancel={() => { if (voiceTimerRef.current) { clearTimeout(voiceTimerRef.current); voiceTimerRef.current = null; } }}
-              >
-                ✨
-              </span>
+              <span className="text-sm shrink-0 select-none">✨</span>
               <input
                 className="flex-1 bg-transparent px-2 py-2 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[14px] min-w-0"
                 placeholder="Scrivi un evento..."

@@ -7,9 +7,10 @@ import { useCalendar } from "@/store/calendar";
 interface Props {
   onDone: () => void;
   autoStart?: boolean;
+  active?: boolean;
 }
 
-export default function VoiceInput({ onDone, autoStart = false }: Props) {
+export default function VoiceInput({ onDone, autoStart = false, active }: Props) {
   const { setAiResult } = useUI();
   const { addEvent } = useCalendar();
 
@@ -155,7 +156,24 @@ export default function VoiceInput({ onDone, autoStart = false }: Props) {
     }
   }, []);
 
-  // autoStart: parte subito in recording (usato per long-press)
+  // Respond to parent toggle (active prop)
+  const prevActiveRef = useRef(active);
+  useEffect(() => {
+    if (active === prevActiveRef.current) return;
+    prevActiveRef.current = active;
+
+    if (active) {
+      // Parent turned us on — start recording
+      if (!recording && !processing) startRecording();
+    } else {
+      // Parent turned us off — stop recording
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+    }
+  }, [active, recording, processing, startRecording]);
+
+  // autoStart: parte subito in recording (retrocompatibilità long-press)
   useEffect(() => {
     if (autoStart && !startedRef.current) {
       startedRef.current = true;
