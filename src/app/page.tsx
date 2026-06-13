@@ -243,18 +243,25 @@ export default function Home() {
       {/* AI Input */}
       <div className="shrink-0 px-4 pb-2">
         <div className="flex items-center bg-[var(--color-surface-secondary)] rounded-xl px-2.5 py-1 border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200 min-w-0">
-          {/* Waveform toggle icon — always visible */}
+          {/* Waveform toggle: tap per registrare, tap di nuovo per fermare */}
           <button
             onClick={handleVoiceToggle}
-            className={`touch-target w-7 h-7 flex items-center justify-center shrink-0 active:scale-90 transition-transform ${voiceActive ? "text-[var(--color-accent)]" : "text-[var(--color-text-secondary)]"}`}
+            disabled={voiceBusy && !voiceActive}
+            className={`touch-target w-7 h-7 flex items-center justify-center shrink-0 active:scale-90 transition-colors duration-200 ${
+              voiceActive ? "text-red-400" : "text-[var(--color-text-secondary)]"
+            } ${voiceBusy && !voiceActive ? "opacity-40" : ""}`}
             aria-label={voiceActive ? "Ferma registrazione" : "Registra audio"}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <rect x="4" y="3" width="1.5" height="10" rx="0.75" fill="currentColor" className={voiceActive ? "animate-pulse" : ""} />
-              <rect x="6.5" y="1.5" width="1.5" height="13" rx="0.75" fill="currentColor" className={voiceActive ? "animate-pulse" : ""} />
-              <rect x="9" y="4.5" width="1.5" height="7" rx="0.75" fill="currentColor" opacity={voiceActive ? "0.8" : "0.6"} />
-              <rect x="11.5" y="6" width="1.5" height="4" rx="0.75" fill="currentColor" opacity={voiceActive ? "0.5" : "0.3"} />
-            </svg>
+            {voiceActive ? (
+              <span className="block w-3 h-3 rounded-[2px] bg-red-400 animate-pulse" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <rect x="4" y="3" width="1.5" height="10" rx="0.75" fill="currentColor" />
+                <rect x="6.5" y="1.5" width="1.5" height="13" rx="0.75" fill="currentColor" />
+                <rect x="9" y="4.5" width="1.5" height="7" rx="0.75" fill="currentColor" opacity="0.6" />
+                <rect x="11.5" y="6" width="1.5" height="4" rx="0.75" fill="currentColor" opacity="0.3" />
+              </svg>
+            )}
           </button>
           {voiceBusy ? (
             <VoiceInput active={voiceActive} onDone={handleVoiceDone} />

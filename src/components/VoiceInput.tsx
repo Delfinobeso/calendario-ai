@@ -150,14 +150,8 @@ export default function VoiceInput({ onDone, autoStart = false, active }: Props)
     }
   }, [addEvent, drawWaveform, setAiResult, onDone]);
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-  }, []);
-
   // Respond to parent toggle (active prop)
-  const prevActiveRef = useRef(active);
+  const prevActiveRef = useRef<boolean | undefined>(undefined);
   useEffect(() => {
     if (active === prevActiveRef.current) return;
     prevActiveRef.current = active;
@@ -183,36 +177,36 @@ export default function VoiceInput({ onDone, autoStart = false, active }: Props)
 
   if (processing) {
     return (
-      <div className="flex-1 flex items-center gap-2 bg-[var(--color-surface-secondary)] rounded-xl px-3 py-2">
+      <div className="flex-1 flex items-center gap-2 min-w-0 ml-1">
         <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-accent)] border-t-transparent animate-spin shrink-0" />
         <span className="text-[var(--color-text-secondary)] text-[13px]">Trascrivendo...</span>
       </div>
     );
   }
 
-  if (recording) {
+  // recording (or just toggled on — show REC immediately while mic spins up)
+  if (recording || active) {
     return (
-      <div className="flex-1 flex items-center gap-1.5 bg-[var(--color-surface-secondary)] rounded-xl px-2.5 py-1 border border-red-500/50 min-w-0">
+      <div className="flex-1 flex items-center gap-2 min-w-0 ml-1">
         <span className="text-red-400 text-[10px] font-semibold animate-pulse shrink-0">REC</span>
-        <canvas ref={canvasRef} width={240} height={32} className="flex-1 h-8" />
-        <button
-          onClick={stopRecording}
-          className="touch-target w-6 h-6 flex items-center justify-center rounded-full bg-red-500 active:scale-90 shrink-0"
-        >
-          <span className="text-white text-[10px]">■</span>
-        </button>
+        <canvas ref={canvasRef} width={240} height={32} className="flex-1 h-8 min-w-0" />
       </div>
     );
   }
 
-  // idle state (solo se non autoStart — per retrocompatibilità)
-  return (
-    <button
-      onClick={startRecording}
-      className="touch-target w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] active:scale-95 shrink-0"
-      aria-label="Registra audio"
-    >
-      <span className="text-base">🎤</span>
-    </button>
-  );
+  // idle state (solo se non controllato dal toggle del parent — retrocompatibilità)
+  if (active === undefined) {
+    return (
+      <button
+        onClick={startRecording}
+        className="touch-target w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] active:scale-95 shrink-0"
+        aria-label="Registra audio"
+      >
+        <span className="text-base">🎤</span>
+      </button>
+    );
+  }
+
+  // active === false, non in registrazione/elaborazione: spazio vuoto durante la transizione
+  return <div className="flex-1 min-w-0" />;
 }
