@@ -6,9 +6,10 @@ import { useCalendar } from "@/store/calendar";
 
 interface Props {
   onDone: () => void;
+  autoStart?: boolean;
 }
 
-export default function VoiceInput({ onDone }: Props) {
+export default function VoiceInput({ onDone, autoStart = false }: Props) {
   const { setAiResult } = useUI();
   const { addEvent } = useCalendar();
 
@@ -21,6 +22,7 @@ export default function VoiceInput({ onDone }: Props) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
+  const startedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -153,6 +155,23 @@ export default function VoiceInput({ onDone }: Props) {
     }
   }, []);
 
+  // autoStart: parte subito in recording (usato per long-press)
+  useEffect(() => {
+    if (autoStart && !startedRef.current) {
+      startedRef.current = true;
+      startRecording();
+    }
+  }, [autoStart, startRecording]);
+
+  if (processing) {
+    return (
+      <div className="flex-1 flex items-center gap-2 bg-[var(--color-surface-secondary)] rounded-xl px-3 py-2">
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-accent)] border-t-transparent animate-spin shrink-0" />
+        <span className="text-[var(--color-text-secondary)] text-[13px]">Trascrivendo...</span>
+      </div>
+    );
+  }
+
   if (recording) {
     return (
       <div className="flex-1 flex items-center gap-1.5 bg-[var(--color-surface-secondary)] rounded-xl px-2.5 py-1 border border-red-500/50 min-w-0">
@@ -168,15 +187,7 @@ export default function VoiceInput({ onDone }: Props) {
     );
   }
 
-  if (processing) {
-    return (
-      <div className="flex-1 flex items-center gap-2 bg-[var(--color-surface-secondary)] rounded-xl px-3 py-2">
-        <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-accent)] border-t-transparent animate-spin shrink-0" />
-        <span className="text-[var(--color-text-secondary)] text-[13px]">Trascrivendo...</span>
-      </div>
-    );
-  }
-
+  // idle state (solo se non autoStart — per retrocompatibilità)
   return (
     <button
       onClick={startRecording}

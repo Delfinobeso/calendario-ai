@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useCalendar,
@@ -18,6 +18,7 @@ import MonthView from "@/components/MonthView";
 import WeekView from "@/components/WeekView";
 import Settings from "@/components/Settings";
 import DayView from "@/components/DayView";
+import VoiceInput from "@/components/VoiceInput";
 
 type ZoomLevel = "year" | "month" | "week" | "day";
 
@@ -77,6 +78,10 @@ export default function Home() {
   const [zoom, setZoom] = useState<ZoomLevel>("week");
   const [focusDate, setFocusDate] = useState(today);
   const [swipeKey, setSwipeKey] = useState(0); // force re-mount carousel on window shift
+
+  // Voice input via long-press
+  const [voiceActive, setVoiceActive] = useState(false);
+  const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const focusYear = focusDate.getFullYear();
   const focusMonth = focusDate.getMonth();
@@ -222,22 +227,39 @@ export default function Home() {
       {/* AI Input */}
       <div className="shrink-0 px-4 pb-2">
         <div className="flex items-center bg-[var(--color-surface-secondary)] rounded-xl px-2.5 py-1 border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200 min-w-0">
-          <span className="text-sm shrink-0">✨</span>
-          <input
-            className="flex-1 bg-transparent px-2 py-2 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[14px] min-w-0"
-            placeholder="Scrivi un evento..."
-            value={aiInput}
-            onChange={(e) => setAiInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAISubmit()}
-            enterKeyHint="go"
-          />
-          <button
-            onClick={handleAISubmit}
-            disabled={aiLoading || !aiInput.trim()}
-            className="touch-target px-3 py-1.5 bg-[var(--color-accent)] text-black font-semibold rounded-lg text-[13px] disabled:opacity-30 shrink-0 active:scale-95"
-          >
-            {aiLoading ? "···" : "Aggiungi"}
-          </button>
+          {voiceActive ? (
+            <VoiceInput autoStart onDone={() => setVoiceActive(false)} />
+          ) : (
+            <>
+              <span
+                className="text-sm shrink-0 select-none"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  voiceTimerRef.current = setTimeout(() => setVoiceActive(true), 400);
+                }}
+                onPointerUp={() => { if (voiceTimerRef.current) { clearTimeout(voiceTimerRef.current); voiceTimerRef.current = null; } }}
+                onPointerLeave={() => { if (voiceTimerRef.current) { clearTimeout(voiceTimerRef.current); voiceTimerRef.current = null; } }}
+                onPointerCancel={() => { if (voiceTimerRef.current) { clearTimeout(voiceTimerRef.current); voiceTimerRef.current = null; } }}
+              >
+                ✨
+              </span>
+              <input
+                className="flex-1 bg-transparent px-2 py-2 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[14px] min-w-0"
+                placeholder="Scrivi un evento..."
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAISubmit()}
+                enterKeyHint="go"
+              />
+              <button
+                onClick={handleAISubmit}
+                disabled={aiLoading || !aiInput.trim()}
+                className="touch-target px-3 py-1.5 bg-[var(--color-accent)] text-black font-semibold rounded-lg text-[13px] disabled:opacity-30 shrink-0 active:scale-95"
+              >
+                {aiLoading ? "···" : "Aggiungi"}
+              </button>
+            </>
+          )}
         </div>
         <AnimatePresence>
           {aiResult && (
