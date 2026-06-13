@@ -4,6 +4,19 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useUI } from "@/store/ui";
 import { useCalendar } from "@/store/calendar";
 
+// Kept alive for the whole session: on iOS, stopping all tracks of a getUserMedia
+// stream makes the next getUserMedia() call re-show the permission prompt, even
+// if the site is already authorized. Reusing the same stream avoids re-asking.
+let sharedMicStream: MediaStream | null = null;
+
+async function getMicStream(): Promise<MediaStream> {
+  if (sharedMicStream && sharedMicStream.getAudioTracks().some((t) => t.readyState === "live")) {
+    return sharedMicStream;
+  }
+  sharedMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  return sharedMicStream;
+}
+
 interface Props {
   onDone: () => void;
   active: boolean;
@@ -19,20 +32,17 @@ export default function VoiceInput({ onDone, active }: Props) {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      const stream = await getMicStream();
 
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
@@ -46,7 +56,6 @@ export default function VoiceInput({ onDone, active }: Props) {
 
       recorder.onstop = async () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        stream.getTracks().forEach((t) => t.stop());
         setRecording(false);
 
         const blob = new Blob(chunksRef.current, { type: mimeType });
