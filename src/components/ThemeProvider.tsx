@@ -29,6 +29,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
+  // Keep --app-vh in sync with the visible viewport so bottom sheets shrink
+  // (instead of being pushed off-screen) when the iOS keyboard is open.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const setAppVh = () => {
+      const h = vv?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty("--app-vh", `${h}px`);
+    };
+    setAppVh();
+    vv?.addEventListener("resize", setAppVh);
+    vv?.addEventListener("scroll", setAppVh);
+    window.addEventListener("resize", setAppVh);
+    return () => {
+      vv?.removeEventListener("resize", setAppVh);
+      vv?.removeEventListener("scroll", setAppVh);
+      window.removeEventListener("resize", setAppVh);
+    };
+  }, []);
+
   useEffect(() => {
     const family = FONT_FAMILIES[font];
     const google = FONT_GOOGLE[font];

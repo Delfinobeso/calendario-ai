@@ -61,7 +61,7 @@ export default function Settings() {
             <motion.div
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[90vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30"
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[calc(var(--app-vh)*0.9)] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30"
             >
               <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
               <h2 className="text-[22px] font-extrabold text-[var(--color-text-primary)] mb-6">

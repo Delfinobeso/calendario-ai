@@ -382,7 +382,7 @@ export default function Home() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeAndResetSheet} />
           <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={sheetTransition}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[90vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[calc(var(--app-vh)*0.9)] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
             <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
             <h2 className="text-[20px] font-bold mb-5">Nuovo evento</h2>
             <form onSubmit={handleFormSubmit} className="space-y-3.5">
@@ -411,7 +411,7 @@ export default function Home() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeAndResetEdit} />
           <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={sheetTransition}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[90vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[calc(var(--app-vh)*0.9)] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
             <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
             <h2 className="text-[20px] font-bold mb-5">Modifica evento</h2>
             <form onSubmit={handleUpdate} className="space-y-3.5">
@@ -453,7 +453,7 @@ export default function Home() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 sheet-blur z-40" onClick={closeDetail} />
           <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={sheetTransition}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[85vh] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-[22px] px-6 pt-6 pb-safe max-h-[calc(var(--app-vh)*0.85)] overflow-y-auto border-t border-[var(--color-surface-tertiary)]/30">
             <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
             <h2 className="text-[20px] font-bold mb-1 break-words">{detailEvent.title}</h2>
             <p className="text-[14px] text-[var(--color-accent)] font-semibold capitalize mb-0.5">{formatEventDate(detailEvent)}</p>

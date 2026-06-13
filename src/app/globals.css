@@ -25,6 +25,8 @@
   --sab: min(34px, env(safe-area-inset-bottom, 0px));
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
+  /* Real visible viewport height (shrinks when the iOS keyboard is open); kept in sync via ThemeProvider */
+  --app-vh: 100vh;
 }
 
 /* ── Light theme ── */
