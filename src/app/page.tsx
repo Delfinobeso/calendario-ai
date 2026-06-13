@@ -62,6 +62,24 @@ function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.
 function addWeeks(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate() + n * 7); return r; }
 function addMonths(d: Date, n: number): Date { const r = new Date(d); r.setMonth(r.getMonth() + n); return r; }
 
+// ── AI bar icons ──
+function MicIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="6" y="1.5" width="4" height="7.5" rx="2" fill="currentColor" />
+      <path d="M3.5 7.5a4.5 4.5 0 0 0 9 0" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      <path d="M8 12v2.5M5.5 14.5h5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+function SendIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M8 13V3M8 3l-4 4M8 3l4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const { events, addEvent, removeEvent, loadEvents, updateEvent } = useCalendar();
   const {
@@ -223,6 +241,9 @@ export default function Home() {
   const clearError = useCallback(() => setError(null), [setError]);
   const sheetTransition = { type: "tween" as const, duration: 0.25, ease: [0.22, 0.61, 0.36, 1] as const };
 
+  const hasText = aiInput.trim().length > 0;
+  const showTrailingButton = !(voiceBusy && !voiceActive);
+
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--color-surface)]"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }} {...pinch}>
@@ -242,48 +263,47 @@ export default function Home() {
 
       {/* AI Input */}
       <div className="shrink-0 px-4 pb-2">
-        <div className="flex items-center bg-[var(--color-surface-secondary)] rounded-xl px-2.5 py-1 border border-transparent focus-within:border-[var(--color-accent)]/40 transition-all duration-200 min-w-0">
-          {/* Waveform toggle: tap per registrare, tap di nuovo per fermare */}
-          <button
-            onClick={handleVoiceToggle}
-            disabled={voiceBusy && !voiceActive}
-            className={`touch-target w-7 h-7 flex items-center justify-center shrink-0 active:scale-90 transition-colors duration-200 ${
-              voiceActive ? "text-red-400" : "text-[var(--color-text-secondary)]"
-            } ${voiceBusy && !voiceActive ? "opacity-40" : ""}`}
-            aria-label={voiceActive ? "Ferma registrazione" : "Registra audio"}
-          >
-            {voiceActive ? (
-              <span className="block w-3 h-3 rounded-[2px] bg-red-400 animate-pulse" />
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <rect x="4" y="3" width="1.5" height="10" rx="0.75" fill="currentColor" />
-                <rect x="6.5" y="1.5" width="1.5" height="13" rx="0.75" fill="currentColor" />
-                <rect x="9" y="4.5" width="1.5" height="7" rx="0.75" fill="currentColor" opacity="0.6" />
-                <rect x="11.5" y="6" width="1.5" height="4" rx="0.75" fill="currentColor" opacity="0.3" />
-              </svg>
-            )}
-          </button>
+        <div className={`flex items-center gap-1.5 bg-[var(--color-surface-secondary)] rounded-full pl-4 pr-1 border transition-colors duration-200 min-w-0 ${
+          voiceActive ? "border-[var(--color-danger)]/40" : "border-transparent focus-within:border-[var(--color-accent)]/40"
+        }`}>
           {voiceBusy ? (
             <VoiceInput active={voiceActive} onDone={handleVoiceDone} />
           ) : (
             <>
-              <span className="text-sm shrink-0 select-none">✨</span>
+              <span className="text-base shrink-0 select-none">✨</span>
               <input
-                className="flex-1 bg-transparent px-2 py-2 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[14px] min-w-0"
+                className="flex-1 bg-transparent py-2.5 px-1.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px] min-w-0"
                 placeholder="Scrivi un evento..."
                 value={aiInput}
                 onChange={(e) => setAiInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAISubmit()}
                 enterKeyHint="go"
               />
-              <button
-                onClick={handleAISubmit}
-                disabled={aiLoading || !aiInput.trim()}
-                className="touch-target px-3 py-1.5 bg-[var(--color-accent)] text-black font-semibold rounded-lg text-[13px] disabled:opacity-30 shrink-0 active:scale-95"
-              >
-                {aiLoading ? "···" : "Aggiungi"}
-              </button>
             </>
+          )}
+          {showTrailingButton && (
+            <button
+              onClick={voiceActive || !hasText ? handleVoiceToggle : handleAISubmit}
+              disabled={aiLoading}
+              className={`touch-target w-9 h-9 flex items-center justify-center rounded-full shrink-0 active:scale-90 transition-colors duration-200 ${
+                voiceActive
+                  ? "bg-[var(--color-danger)] text-white"
+                  : hasText
+                  ? "bg-[var(--color-accent)] text-black"
+                  : "text-[var(--color-text-secondary)]"
+              }`}
+              aria-label={voiceActive ? "Ferma registrazione" : hasText ? "Aggiungi evento" : "Registra audio"}
+            >
+              {aiLoading ? (
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-black/30 border-t-transparent animate-spin" />
+              ) : voiceActive ? (
+                <span className="block w-3 h-3 rounded-[2px] bg-white" />
+              ) : hasText ? (
+                <SendIcon />
+              ) : (
+                <MicIcon />
+              )}
+            </button>
           )}
         </div>
         <AnimatePresence>
