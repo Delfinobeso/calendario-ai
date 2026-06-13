@@ -278,7 +278,9 @@ export default function Home() {
             <VoiceInput active={voiceActive} onDone={handleVoiceDone} />
           ) : (
             <>
-              <SparkleIcon className="shrink-0 text-[var(--color-text-secondary)]" />
+              <span className="touch-target w-9 h-9 flex items-center justify-center shrink-0 text-[var(--color-text-secondary)]">
+                <SparkleIcon />
+              </span>
               <input
                 className="flex-1 bg-transparent py-2.5 px-1.5 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none text-[15px] min-w-0"
                 placeholder="Scrivi un evento..."
