@@ -388,7 +388,7 @@ export default function Home() {
             aria-label={zoom === "year" ? "Calendario" : "Zoom out"}
           >
             <h1 className="text-[22px] font-extrabold text-[var(--color-text-primary)] tracking-tight leading-tight">Calendario</h1>
-            <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 capitalize flex items-center gap-1">
+            <p className="text-[12px] font-medium text-[var(--color-text-secondary)] mt-0.5 capitalize flex items-center gap-1">
               {headerLabel}
               {zoom !== "year" && <ChevronUpIcon className="opacity-50 shrink-0" />}
             </p>

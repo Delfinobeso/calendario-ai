@@ -92,8 +92,8 @@ export default function MonthView({
                   return (
                     <button key={ev.id ?? ei}
                       onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }}
-                      className="w-full rounded-sm px-1 py-px text-[9px] font-semibold leading-tight truncate text-left active:opacity-70 transition-opacity"
-                      style={{ background: c + "22", color: c }}>
+                      className="w-full rounded-[3px] px-1 py-px text-[10px] font-semibold leading-tight truncate text-left active:opacity-70 transition-opacity"
+                      style={{ background: c + "26", color: c }}>
                       {ev.title}
                     </button>
                   );

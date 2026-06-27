@@ -3,15 +3,17 @@ import { CalendarEvent } from "@/store/calendar";
 // ── Single source of truth for event colors ──
 // Apple Calendar-style: vibrant but distinguishable, WCAG AA on dark bg.
 // Color now CARRIES MEANING: it maps to the event category.
-export const COLORS = ["#51b1e7", "#f5a623", "#7ed321", "#e04080", "#6c5ce7"] as const;
-
+// Harmonised category set: similar perceived lightness, slightly muted — reads as a
+// designed palette on dark, not a saturated rainbow. Distinct enough at a glance.
 export const CATEGORY_COLORS: Record<string, string> = {
-  sopralluogo: "#51b1e7", // blu — visite tecniche / rilievi
-  pratica: "#f5a623",     // ambra — catasto / burocrazia
-  riunione: "#6c5ce7",    // viola — meeting / clienti
-  personale: "#7ed321",   // verde — vita privata
-  scadenza: "#e04080",    // magenta — deadline / pagamenti
+  sopralluogo: "#5b8def", // indigo — visite tecniche / rilievi
+  pratica: "#e0a24e",     // ambra calda — catasto / burocrazia
+  riunione: "#a98bf0",    // viola tenue — meeting / clienti
+  personale: "#5cc489",   // verde sobrio — vita privata
+  scadenza: "#ea6a89",    // rosa — deadline / pagamenti
 };
+
+export const COLORS = ["#5b8def", "#e0a24e", "#5cc489", "#ea6a89", "#a98bf0"] as const;
 
 export const CATEGORY_LABELS: Record<string, string> = {
   sopralluogo: "Sopralluogo",

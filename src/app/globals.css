@@ -10,17 +10,17 @@
 /* ── Dark theme (default) ── */
 :root,
 [data-theme="dark"] {
-  --color-surface: #1b1b1b;
-  --color-surface-secondary: #242424;
-  --color-surface-tertiary: #2e2e2e;
-  --color-accent: #51b1e7;
-  --color-text-primary: #e6e6e6;
-  --color-text-secondary: #999999;
-  --color-text-tertiary: #666666;
-  --color-danger: #e05252;
-  --color-success: #4caf84;
-  --color-today: rgba(81, 177, 231, 0.10);
-  --color-weekend: #151515;
+  --color-surface: #1a1a1c;
+  --color-surface-secondary: #242529;
+  --color-surface-tertiary: #303137;
+  --color-accent: #3fb0dd;
+  --color-text-primary: #f0f0f1;
+  --color-text-secondary: #a0a4ab;
+  --color-text-tertiary: #6f7480;
+  --color-danger: #e85561;
+  --color-success: #54c08a;
+  --color-today: rgba(63, 176, 221, 0.12);
+  --color-weekend: #151517;
   --sat: env(safe-area-inset-top, 0px);
   --sab: min(34px, env(safe-area-inset-bottom, 0px));
   --sal: env(safe-area-inset-left, 0px);
@@ -31,17 +31,17 @@
 
 /* ── Light theme ── */
 [data-theme="light"] {
-  --color-surface: #fafafa;
-  --color-surface-secondary: #f0f0f0;
-  --color-surface-tertiary: #e5e5e5;
-  --color-accent: #3b8bc6;
-  --color-text-primary: #1a1a1a;
-  --color-text-secondary: #555555;
-  --color-text-tertiary: #777777;
-  --color-danger: #d94141;
-  --color-success: #3d9e6d;
-  --color-today: rgba(59, 139, 198, 0.10);
-  --color-weekend: #f2f2f2;
+  --color-surface: #faf9f7;
+  --color-surface-secondary: #efeeec;
+  --color-surface-tertiary: #e3e2df;
+  --color-accent: #1f86b3;
+  --color-text-primary: #18191b;
+  --color-text-secondary: #5a5f66;
+  --color-text-tertiary: #8a8f96;
+  --color-danger: #d23f4d;
+  --color-success: #2f9e6a;
+  --color-today: rgba(31, 134, 179, 0.10);
+  --color-weekend: #f1f0ed;
 }
 
 * {
@@ -146,4 +146,4 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
 ::placeholder { color: var(--color-text-tertiary); opacity: 0.6; }
 input:focus-visible { outline: none; }
-::selection { background: var(--color-accent); color: #1b1b1b; }
+::selection { background: var(--color-accent); color: #0d0d0d; }

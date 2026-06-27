@@ -82,7 +82,7 @@ export default function DayView({
                 className="absolute left-12 right-1.5 rounded-xl px-3 py-2 cursor-pointer overflow-hidden touch-target"
                 style={{ top, height, background: c + "18", borderLeft: `3px solid ${c}`, color: c }}
                 onClick={() => onTapEvent(ev)}>
-                <div className="text-[12px] font-semibold leading-tight truncate">{ev.title}</div>
+                <div className="text-[13px] font-semibold leading-tight truncate">{ev.title}</div>
                 <div className="text-[11px] opacity-70 leading-tight mt-0.5">{formatTime(ev.start_time)} – {formatTime(ev.end_time)}</div>
                 {ev.location && <div className="text-[11px] opacity-50 leading-tight truncate mt-0.5 flex items-center gap-1"><PinIcon className="shrink-0" /> {ev.location}</div>}
               </motion.div>

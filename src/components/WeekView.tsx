@@ -54,7 +54,7 @@ export default function WeekView({
 
         const dayLabel = (
           <>
-            <span className={`text-[10px] font-bold tracking-wider w-6 shrink-0 ${isWeekend ? "text-[var(--color-text-tertiary)]/40" : "text-[var(--color-text-tertiary)]"}`}>
+            <span className={`text-[11px] font-bold tracking-wider w-6 shrink-0 ${isWeekend ? "text-[var(--color-text-tertiary)]/50" : "text-[var(--color-text-secondary)]"}`}>
               {WEEKDAY_LABELS[idx]}
             </span>
             <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] font-bold shrink-0 transition-all ${
@@ -128,7 +128,7 @@ export default function WeekView({
                     <span className="text-[11px] font-bold tabular-nums shrink-0" style={{ color: c }}>
                       {formatTime(ev.start_time)}
                     </span>
-                    <span className="text-[12px] text-[var(--color-text-primary)] truncate">{ev.title}</span>
+                    <span className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">{ev.title}</span>
                   </div>
                 );
               })}
