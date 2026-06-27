@@ -1,8 +1,29 @@
 import { CalendarEvent } from "@/store/calendar";
 
 // ── Single source of truth for event colors ──
-// Apple Calendar-style: vibrant but distinguishable, WCAG AA on dark bg
+// Apple Calendar-style: vibrant but distinguishable, WCAG AA on dark bg.
+// Color now CARRIES MEANING: it maps to the event category.
 export const COLORS = ["#51b1e7", "#f5a623", "#7ed321", "#e04080", "#6c5ce7"] as const;
+
+export const CATEGORY_COLORS: Record<string, string> = {
+  sopralluogo: "#51b1e7", // blu — visite tecniche / rilievi
+  pratica: "#f5a623",     // ambra — catasto / burocrazia
+  riunione: "#6c5ce7",    // viola — meeting / clienti
+  personale: "#7ed321",   // verde — vita privata
+  scadenza: "#e04080",    // magenta — deadline / pagamenti
+};
+
+export const CATEGORY_LABELS: Record<string, string> = {
+  sopralluogo: "Sopralluogo",
+  pratica: "Pratica",
+  riunione: "Riunione",
+  personale: "Personale",
+  scadenza: "Scadenza",
+};
+
+// Ordered list for the form picker ("" = nessuna categoria).
+export const CATEGORY_ORDER = ["", "sopralluogo", "pratica", "riunione", "personale", "scadenza"] as const;
+export const NO_CATEGORY_COLOR = "#8a94a6"; // neutral slate for uncategorised events
 
 function hashString(s: string): number {
   let h = 0;
@@ -13,11 +34,16 @@ function hashString(s: string): number {
   return Math.abs(h);
 }
 
-/** Stable color per event (by id, falling back to title+start for unsaved events) — never positional, so it doesn't shift when other events are added/removed */
-export function getEventColor(ev: { id?: number; color?: string; title: string; start_time: string }): string {
+/** Color per event: category first (meaningful), then explicit color, then a stable hash fallback for legacy/uncategorised events. */
+export function getEventColor(ev: { id?: number; color?: string; title: string; start_time: string; category?: string }): string {
+  if (ev.category && CATEGORY_COLORS[ev.category]) return CATEGORY_COLORS[ev.category];
   if (ev.color) return ev.color;
-  const key = ev.id != null ? String(ev.id) : `${ev.title}|${ev.start_time}`;
-  return COLORS[hashString(key) % COLORS.length];
+  if (ev.category === "" || ev.category == null) {
+    // Uncategorised: keep a stable, non-positional hue so it doesn't shift.
+    const key = ev.id != null ? String(ev.id) : `${ev.title}|${ev.start_time}`;
+    return COLORS[hashString(key) % COLORS.length];
+  }
+  return NO_CATEGORY_COLOR;
 }
 
 export const HOUR_HEIGHT = 60;

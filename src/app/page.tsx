@@ -13,6 +13,7 @@ import { useSettings } from "@/store/settings";
 import { usePinchZoom } from "@/hooks/usePinchZoom";
 import { SHEET_TRANSITION, BACKDROP_TRANSITION } from "@/lib/motion";
 import { CheckIcon, WarningIcon, ErrorIcon, CloseIcon, PinIcon, MapIcon, CompassIcon, ChevronUpIcon } from "@/components/icons";
+import { CATEGORY_ORDER, CATEGORY_LABELS, CATEGORY_COLORS } from "@/lib/timeline";
 
 import { SwipeCarousel } from "@/components/SwipeCarousel";
 import YearView from "@/components/YearView";
@@ -52,11 +53,11 @@ function addHour(t: string): string {
 }
 
 function blankForm() {
-  return { title: "", loc: "", desc: "", date: new Date().toISOString().slice(0, 10), startTime: roundUp30(), endTime: addHour(roundUp30()) };
+  return { title: "", loc: "", desc: "", category: "", date: new Date().toISOString().slice(0, 10), startTime: roundUp30(), endTime: addHour(roundUp30()) };
 }
 function formFromEvent(ev: CalendarEvent) {
   const s = new Date(ev.start_time);
-  return { title: ev.title, loc: ev.location || "", desc: ev.description || "", date: s.toISOString().slice(0, 10), startTime: s.toTimeString().slice(0, 5), endTime: formatTime(ev.end_time || ev.start_time) };
+  return { title: ev.title, loc: ev.location || "", desc: ev.description || "", category: ev.category || "", date: s.toISOString().slice(0, 10), startTime: s.toTimeString().slice(0, 5), endTime: formatTime(ev.end_time || ev.start_time) };
 }
 
 // ── Helpers for date math ──
@@ -87,6 +88,35 @@ function SparkleIcon({ className = "" }: { className?: string }) {
       <path d="M6.5 1c.35 2.3 1.4 3.35 3.7 3.7-2.3.35-3.35 1.4-3.7 3.7-.35-2.3-1.4-3.35-3.7-3.7C5.1 4.35 6.15 3.3 6.5 1z" fill="currentColor" />
       <path d="M12 7.5c.2 1.3.85 1.95 2.15 2.15-1.3.2-1.95.85-2.15 2.15-.2-1.3-.85-1.95-2.15-2.15 1.3-.2 1.95-.85 2.15-2.15z" fill="currentColor" opacity="0.55" />
     </svg>
+  );
+}
+
+function CategoryPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  return (
+    <div>
+      <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Categoria</span>
+      <div className="flex flex-wrap gap-2">
+        {CATEGORY_ORDER.map((cat) => {
+          const active = value === cat;
+          const color = cat ? CATEGORY_COLORS[cat] : "var(--color-text-tertiary)";
+          const label = cat ? CATEGORY_LABELS[cat] : "Nessuna";
+          return (
+            <button
+              key={cat || "none"}
+              type="button"
+              onClick={() => onChange(cat)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-semibold transition-all active:scale-95 ${
+                active ? "text-black" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
+              }`}
+              style={active ? { background: cat ? color : "var(--color-text-tertiary)" } : undefined}
+            >
+              {cat && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: active ? "rgba(0,0,0,0.55)" : color }} />}
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -244,7 +274,7 @@ export default function Home() {
         } catch {}
       }
       if (!parsed) { const { parseLocally } = await import("@/lib/parser"); parsed = parseLocally(text); }
-      await addEvent({ title: parsed.title, location: parsed.location || "", description: parsed.description || "", start_time: parsed.start_time, end_time: parsed.end_time, source: "ai" });
+      await addEvent({ title: parsed.title, location: parsed.location || "", description: parsed.description || "", category: parsed.category || "", start_time: parsed.start_time, end_time: parsed.end_time, source: "ai" });
       setAiResult(conflictMsg ? { kind: "warning", text: conflictMsg } : { kind: "success", text: `"${parsed.title}" aggiunto` });
       setAiInput("");
     } catch { setAiResult({ kind: "error", text: "Non riesco a capire la data." }); }
@@ -253,11 +283,11 @@ export default function Home() {
 
   const handleFormSubmit = async (e: React.FormEvent) => { e.preventDefault();
     if (!form.title.trim()) { triggerTitleError(titleRef); return; }
-    try { await addEvent({ title: form.title, location: form.loc, description: form.desc, start_time: `${form.date}T${form.startTime}:00`, end_time: `${form.date}T${form.endTime}:00`, source: "manual" }); closeAndResetSheet(); }
+    try { await addEvent({ title: form.title, location: form.loc, description: form.desc, category: form.category, start_time: `${form.date}T${form.startTime}:00`, end_time: `${form.date}T${form.endTime}:00`, source: "manual" }); closeAndResetSheet(); }
     catch { setError("Errore nel salvare l'evento."); } };
   const handleUpdate = async (e: React.FormEvent) => { e.preventDefault(); if (!editEvent?.id) return;
     if (!form.title.trim()) { triggerTitleError(editTitleRef); return; }
-    try { await updateEvent(editEvent.id, { title: form.title, location: form.loc, description: form.desc, start_time: `${form.date}T${form.startTime}:00`, end_time: `${form.date}T${form.endTime}:00` }); closeAndResetEdit(); }
+    try { await updateEvent(editEvent.id, { title: form.title, location: form.loc, description: form.desc, category: form.category, start_time: `${form.date}T${form.startTime}:00`, end_time: `${form.date}T${form.endTime}:00` }); closeAndResetEdit(); }
     catch { setError("Errore nell'aggiornare."); } };
   const handleDelete = async () => { if (!editEvent?.id) return;
     try { await removeEvent(editEvent.id); setConfirmDelete(false); closeAndResetEdit(); } catch { setError("Errore nell'eliminare."); } };
@@ -421,6 +451,7 @@ export default function Home() {
                 placeholder="Titolo evento" value={form.title} onChange={e => { setForm(f => ({ ...f, title: e.target.value })); setTitleError(false); }} autoFocus />
               <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]"
                 placeholder="Luogo" value={form.loc} onChange={e => setForm(f => ({ ...f, loc: e.target.value }))} />
+              <CategoryPicker value={form.category} onChange={c => setForm(f => ({ ...f, category: c }))} />
               <label className="block"><span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
                 <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></label>
               <div className="flex gap-3">
@@ -452,6 +483,7 @@ export default function Home() {
                 placeholder="Titolo" value={form.title} onChange={e => { setForm(f => ({ ...f, title: e.target.value })); setTitleError(false); }} autoFocus />
               <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]"
                 placeholder="Luogo" value={form.loc} onChange={e => setForm(f => ({ ...f, loc: e.target.value }))} />
+              <CategoryPicker value={form.category} onChange={c => setForm(f => ({ ...f, category: c }))} />
               <label className="block"><span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
                 <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></label>
               <div className="flex gap-3">
@@ -490,7 +522,14 @@ export default function Home() {
             <div className="w-10 h-1 bg-[var(--color-text-tertiary)]/25 rounded-full mx-auto mb-6" />
             <h2 className="selectable-text text-[20px] font-bold mb-1 break-words">{detailEvent.title}</h2>
             <p className="text-[14px] text-[var(--color-accent)] font-semibold capitalize mb-0.5">{formatEventDate(detailEvent)}</p>
-            <p className="text-[14px] text-[var(--color-text-secondary)] mb-5">{formatEventTimeRange(detailEvent)}</p>
+            <p className="text-[14px] text-[var(--color-text-secondary)] mb-3">{formatEventTimeRange(detailEvent)}</p>
+            {detailEvent.category && CATEGORY_LABELS[detailEvent.category] && (
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1 rounded-full mb-5"
+                style={{ background: CATEGORY_COLORS[detailEvent.category] + "22", color: CATEGORY_COLORS[detailEvent.category] }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: CATEGORY_COLORS[detailEvent.category] }} />
+                {CATEGORY_LABELS[detailEvent.category]}
+              </span>
+            )}
             {detailEvent.location && (<div className="mb-5">
               <div className="flex items-start gap-2 text-[var(--color-text-primary)] text-[15px] mb-2.5"><PinIcon className="mt-0.5 shrink-0" /><span className="selectable-text flex-1 break-words">{detailEvent.location}</span></div>
               <div className="flex gap-3">

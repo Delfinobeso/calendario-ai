@@ -1,12 +1,24 @@
-export interface CalendarEvent {
-  id?: number;
-  title: string;
-  location: string;
-  description: string;
-  start_time: string;
-  end_time: string;
-  source: string;
-  color?: string;
+import type { CalendarEvent } from "@/store/calendar";
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  sopralluogo: ["sopralluogo", "sopraluogo", "rilievo", "misura", "perizia", "accatastamento", "cantiere"],
+  pratica: ["catasto", "catastale", "comune", "pratica", "scia", "cila", "permesso", "protocollo", "documenti"],
+  riunione: ["riunione", "meeting", "incontro", "appuntamento", "cliente", "call"],
+  personale: ["cena", "pranzo", "compleanno", "famiglia", "medico", "dentista", "palestra", "ferie", "aperitivo"],
+  scadenza: ["scadenza", "consegna", "deadline", "pagamento", "pagare", "bolletta", "f24", "termine", "rata"],
+};
+
+function inferCategory(lower: string): string {
+  for (const [cat, words] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (words.some((w) => lower.includes(w))) return cat;
+  }
+  return "";
+}
+
+// Naive local ISO ("YYYY-MM-DDTHH:mm:ss") — no UTC shift, consistent with the manual form and backend.
+function toLocalISO(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`;
 }
 
 export function parseLocally(text: string): Omit<CalendarEvent, "id"> {
@@ -34,7 +46,9 @@ export function parseLocally(text: string): Omit<CalendarEvent, "id"> {
 
   const targetDate = new Date(now);
 
-  if (lower.includes("domani")) {
+  if (lower.includes("dopodomani")) {
+    targetDate.setDate(now.getDate() + 2);
+  } else if (lower.includes("domani")) {
     targetDate.setDate(now.getDate() + 1);
   } else if (!lower.includes("oggi")) {
     for (const [name, day] of dayMap) {
@@ -49,7 +63,7 @@ export function parseLocally(text: string): Omit<CalendarEvent, "id"> {
   }
 
   // Pulisci titolo
-  const dayNames = ["lunedì", "lunedi", "martedì", "martedi", "mercoledì", "mercoledi", "giovedì", "giovedi", "venerdì", "venerdi", "sabato", "domenica", "domani", "oggi"];
+  const dayNames = ["lunedì", "lunedi", "martedì", "martedi", "mercoledì", "mercoledi", "giovedì", "giovedi", "venerdì", "venerdi", "sabato", "domenica", "dopodomani", "domani", "oggi"];
   let title = text;
   for (const dn of dayNames) {
     title = title.replace(new RegExp(dn, "gi"), "");
@@ -68,8 +82,9 @@ export function parseLocally(text: string): Omit<CalendarEvent, "id"> {
     title: title.charAt(0).toUpperCase() + title.slice(1),
     location: "",
     description: "",
-    start_time: start_time.toISOString(),
-    end_time: end_time.toISOString(),
+    category: inferCategory(lower),
+    start_time: toLocalISO(start_time),
+    end_time: toLocalISO(end_time),
     source: "ai",
   };
 }
