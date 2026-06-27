@@ -339,8 +339,12 @@ export default function Home() {
         } catch {}
       }
       if (!parsed) { const { parseLocally } = await import("@/lib/parser"); parsed = parseLocally(text); }
-      await addEvent({ title: parsed.title, location: parsed.location || "", description: parsed.description || "", category: parsed.category || "", start_time: parsed.start_time, end_time: parsed.end_time, source: "ai" });
-      setAiResult(conflictMsg ? { kind: "warning", text: conflictMsg } : { kind: "success", text: `"${parsed.title}" aggiunto` });
+      await addEvent({ title: parsed.title, location: parsed.location || "", description: parsed.description || "", category: parsed.category || "", recurrence: parsed.recurrence || "", recurrence_until: parsed.recurrence_until ?? null, reminder_minutes: parsed.reminder_minutes ?? 0, start_time: parsed.start_time, end_time: parsed.end_time, source: "ai" });
+      const extras = [
+        parsed.recurrence ? `↻ ${RECURRENCE_OPTIONS.find(o => o.value === parsed.recurrence)?.label?.toLowerCase()}` : "",
+        (parsed.reminder_minutes ?? 0) > 0 ? `🔔 ${REMINDER_OPTIONS.find(o => o.value === parsed.reminder_minutes)?.label ?? `${parsed.reminder_minutes}m`}` : "",
+      ].filter(Boolean).join(" · ");
+      setAiResult(conflictMsg ? { kind: "warning", text: conflictMsg } : { kind: "success", text: `"${parsed.title}" aggiunto${extras ? ` · ${extras}` : ""}` });
       setAiInput("");
     } catch { setAiResult({ kind: "error", text: "Non riesco a capire la data." }); }
     setAiLoading(false); setTimeout(() => setAiResult(null), 3000);
