@@ -10,6 +10,7 @@ import {
 } from "@/store/settings";
 import { SHEET_TRANSITION, BACKDROP_TRANSITION } from "@/lib/motion";
 import { CheckIcon, MoonIcon, SunIcon, AutoIcon } from "@/components/icons";
+import { pushSupported, getSubscriptionState, enablePush, disablePush } from "@/lib/push";
 
 export default function Settings() {
   const [open, setOpen] = useState(false);
@@ -97,6 +98,11 @@ export default function Settings() {
                 <FontPicker selected={font} onChange={setFont} />
               </Section>
 
+              {/* ── Notifiche ── */}
+              <Section title="Notifiche">
+                <NotificationSettings open={open} />
+              </Section>
+
               <div className="h-6" />
             </motion.div>
           </>
@@ -107,6 +113,60 @@ export default function Settings() {
 }
 
 /* ── Sub-components ── */
+
+function NotificationSettings({ open }: { open: boolean }) {
+  const [state, setState] = useState<"loading" | "unsupported" | "denied" | "subscribed" | "available">("loading");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    if (!pushSupported()) { setState("unsupported"); return; }
+    getSubscriptionState().then(setState);
+  }, [open]);
+
+  const handleEnable = async () => {
+    setBusy(true); setMsg("");
+    const r = await enablePush();
+    setBusy(false);
+    if (r.ok) { setState("subscribed"); setMsg("Notifiche attive."); }
+    else setMsg(r.error || "Errore.");
+  };
+  const handleDisable = async () => {
+    setBusy(true); setMsg("");
+    await disablePush();
+    setBusy(false);
+    setState("available");
+    setMsg("Notifiche disattivate.");
+  };
+
+  if (state === "unsupported") {
+    return <p className="text-[13px] text-[var(--color-text-tertiary)] leading-relaxed">Le notifiche non sono supportate qui. Su iPhone: installa l&apos;app dalla schermata Home (Condividi → Aggiungi a Home) e riapri da lì.</p>;
+  }
+  if (state === "denied") {
+    return <p className="text-[13px] text-[var(--color-danger)] leading-relaxed">Permesso negato. Abilita le notifiche per &quot;Calendario&quot; nelle impostazioni di sistema.</p>;
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+        Ricevi un promemoria push prima degli eventi che hanno una sveglia impostata.
+      </p>
+      <button
+        onClick={state === "subscribed" ? handleDisable : handleEnable}
+        disabled={busy || state === "loading"}
+        className={`w-full py-3 font-semibold rounded-xl text-[15px] active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+          state === "subscribed"
+            ? "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]"
+            : "bg-[var(--color-accent)] text-black"
+        }`}
+      >
+        {busy ? "…" : state === "subscribed" ? "Disattiva notifiche" : "Attiva notifiche"}
+      </button>
+      {msg && <p className="text-[12px] text-center text-[var(--color-text-secondary)]">{msg}</p>}
+    </div>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

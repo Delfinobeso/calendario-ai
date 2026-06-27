@@ -53,12 +53,27 @@ function addHour(t: string): string {
 }
 
 function blankForm() {
-  return { title: "", loc: "", desc: "", category: "", date: new Date().toISOString().slice(0, 10), startTime: roundUp30(), endTime: addHour(roundUp30()) };
+  return { title: "", loc: "", desc: "", category: "", recurrence: "" as string, recurrenceUntil: "", reminder: 0, date: new Date().toISOString().slice(0, 10), startTime: roundUp30(), endTime: addHour(roundUp30()) };
 }
 function formFromEvent(ev: CalendarEvent) {
   const s = new Date(ev.start_time);
-  return { title: ev.title, loc: ev.location || "", desc: ev.description || "", category: ev.category || "", date: s.toISOString().slice(0, 10), startTime: s.toTimeString().slice(0, 5), endTime: formatTime(ev.end_time || ev.start_time) };
+  return { title: ev.title, loc: ev.location || "", desc: ev.description || "", category: ev.category || "", recurrence: ev.recurrence || "", recurrenceUntil: ev.recurrence_until ? new Date(ev.recurrence_until).toISOString().slice(0, 10) : "", reminder: ev.reminder_minutes || 0, date: s.toISOString().slice(0, 10), startTime: s.toTimeString().slice(0, 5), endTime: formatTime(ev.end_time || ev.start_time) };
 }
+
+const RECURRENCE_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Mai" },
+  { value: "daily", label: "Ogni giorno" },
+  { value: "weekly", label: "Ogni settimana" },
+  { value: "monthly", label: "Ogni mese" },
+  { value: "yearly", label: "Ogni anno" },
+];
+const REMINDER_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: "Nessuno" },
+  { value: 10, label: "10 min" },
+  { value: 30, label: "30 min" },
+  { value: 60, label: "1 ora" },
+  { value: 1440, label: "1 giorno" },
+];
 
 // ── Helpers for date math ──
 function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
@@ -117,6 +132,53 @@ function CategoryPicker({ value, onChange }: { value: string; onChange: (c: stri
         })}
       </div>
     </div>
+  );
+}
+
+function PillRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">{label}</span>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`px-3 py-2 rounded-full text-[13px] font-semibold transition-all active:scale-95 ${
+        active ? "bg-[var(--color-accent)] text-black" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
+      }`}>
+      {children}
+    </button>
+  );
+}
+
+function RecurrencePicker({ value, until, onChange, onUntilChange }: {
+  value: string; until: string; onChange: (v: string) => void; onUntilChange: (v: string) => void;
+}) {
+  return (
+    <PillRow label="Ripeti">
+      {RECURRENCE_OPTIONS.map((o) => (
+        <Pill key={o.value || "none"} active={value === o.value} onClick={() => onChange(o.value)}>{o.label}</Pill>
+      ))}
+      {value && (
+        <label className="w-full block mt-1"><span className="block text-[11px] text-[var(--color-text-tertiary)] mb-1 ml-1">Fino al (opzionale)</span>
+          <input type="date" value={until} onChange={(e) => onUntilChange(e.target.value)}
+            className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-3 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[15px]" />
+        </label>
+      )}
+    </PillRow>
+  );
+}
+
+function ReminderPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <PillRow label="Promemoria">
+      {REMINDER_OPTIONS.map((o) => (
+        <Pill key={o.value} active={value === o.value} onClick={() => onChange(o.value)}>{o.label}</Pill>
+      ))}
+    </PillRow>
   );
 }
 
@@ -213,7 +275,10 @@ export default function Home() {
   const jumpToToday = useCallback(() => { setFocusDate(new Date()); setZoom("week"); setSwipeKey(k => k + 1); }, []);
 
   const pinch = usePinchZoom(zoomOut, 0.6);
-  useEffect(() => { loadEvents(); }, [loadEvents]);
+  useEffect(() => {
+    loadEvents();
+    import("@/lib/push").then(({ registerServiceWorker }) => registerServiceWorker());
+  }, [loadEvents]);
   // Profile persists via localStorage (Zustand persist) — no auto-sync from backend
   // Backend sync happens only on explicit save (Settings sheet)
 
@@ -283,17 +348,21 @@ export default function Home() {
 
   const handleFormSubmit = async (e: React.FormEvent) => { e.preventDefault();
     if (!form.title.trim()) { triggerTitleError(titleRef); return; }
-    try { await addEvent({ title: form.title, location: form.loc, description: form.desc, category: form.category, start_time: `${form.date}T${form.startTime}:00`, end_time: `${form.date}T${form.endTime}:00`, source: "manual" }); closeAndResetSheet(); }
+    try { await addEvent({ title: form.title, location: form.loc, description: form.desc, category: form.category, recurrence: form.recurrence as CalendarEvent["recurrence"], recurrence_until: form.recurrence && form.recurrenceUntil ? `${form.recurrenceUntil}T23:59:00` : null, reminder_minutes: form.reminder, start_time: `${form.date}T${form.startTime}:00`, end_time: `${form.date}T${form.endTime}:00`, source: "manual" }); closeAndResetSheet(); }
     catch { setError("Errore nel salvare l'evento."); } };
   const handleUpdate = async (e: React.FormEvent) => { e.preventDefault(); if (!editEvent?.id) return;
     if (!form.title.trim()) { triggerTitleError(editTitleRef); return; }
-    try { await updateEvent(editEvent.id, { title: form.title, location: form.loc, description: form.desc, category: form.category, start_time: `${form.date}T${form.startTime}:00`, end_time: `${form.date}T${form.endTime}:00` }); closeAndResetEdit(); }
+    try { await updateEvent(editEvent.id, { title: form.title, location: form.loc, description: form.desc, category: form.category, recurrence: form.recurrence as CalendarEvent["recurrence"], recurrence_until: form.recurrence && form.recurrenceUntil ? `${form.recurrenceUntil}T23:59:00` : null, reminder_minutes: form.reminder, start_time: `${form.date}T${form.startTime}:00`, end_time: `${form.date}T${form.endTime}:00` }); closeAndResetEdit(); }
     catch { setError("Errore nell'aggiornare."); } };
   const handleDelete = async () => { if (!editEvent?.id) return;
     try { await removeEvent(editEvent.id); setConfirmDelete(false); closeAndResetEdit(); } catch { setError("Errore nell'eliminare."); } };
   const handleDeleteFromDetail = async () => { if (!detailEvent?.id) return;
     try { await removeEvent(detailEvent.id); setConfirmDeleteDetail(false); closeDetail(); } catch { setError("Errore nell'eliminare."); } };
-  const handleOpenEdit = useCallback((ev: CalendarEvent) => { setForm(formFromEvent(ev)); setConfirmDelete(false); openEdit(ev); }, [openEdit]);
+  const handleOpenEdit = useCallback((ev: CalendarEvent) => {
+    // Editing a recurrence occurrence edits the whole series — open on the master anchor.
+    const master = ev._occurrence ? (useCalendar.getState().masters.find(m => m.id === (ev.master_id ?? ev.id)) ?? ev) : ev;
+    setForm(formFromEvent(master)); setConfirmDelete(false); openEdit(master);
+  }, [openEdit]);
   const handleOpenEditFromDetail = useCallback(() => { if (!detailEvent) return; closeDetail(); handleOpenEdit(detailEvent); }, [detailEvent, closeDetail, handleOpenEdit]);
 
   const errorToast = useUI((s) => s.error);
@@ -452,6 +521,8 @@ export default function Home() {
               <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]"
                 placeholder="Luogo" value={form.loc} onChange={e => setForm(f => ({ ...f, loc: e.target.value }))} />
               <CategoryPicker value={form.category} onChange={c => setForm(f => ({ ...f, category: c }))} />
+              <RecurrencePicker value={form.recurrence} until={form.recurrenceUntil} onChange={v => setForm(f => ({ ...f, recurrence: v }))} onUntilChange={v => setForm(f => ({ ...f, recurrenceUntil: v }))} />
+              <ReminderPicker value={form.reminder} onChange={v => setForm(f => ({ ...f, reminder: v }))} />
               <label className="block"><span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
                 <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></label>
               <div className="flex gap-3">
@@ -484,6 +555,8 @@ export default function Home() {
               <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]"
                 placeholder="Luogo" value={form.loc} onChange={e => setForm(f => ({ ...f, loc: e.target.value }))} />
               <CategoryPicker value={form.category} onChange={c => setForm(f => ({ ...f, category: c }))} />
+              <RecurrencePicker value={form.recurrence} until={form.recurrenceUntil} onChange={v => setForm(f => ({ ...f, recurrence: v }))} onUntilChange={v => setForm(f => ({ ...f, recurrenceUntil: v }))} />
+              <ReminderPicker value={form.reminder} onChange={v => setForm(f => ({ ...f, reminder: v }))} />
               <label className="block"><span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
                 <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></label>
               <div className="flex gap-3">
@@ -529,6 +602,12 @@ export default function Home() {
                 <span className="w-2 h-2 rounded-full" style={{ background: CATEGORY_COLORS[detailEvent.category] }} />
                 {CATEGORY_LABELS[detailEvent.category]}
               </span>
+            )}
+            {(detailEvent.recurrence || (detailEvent.reminder_minutes ?? 0) > 0) && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mb-5 text-[13px] text-[var(--color-text-secondary)]">
+                {detailEvent.recurrence && <span className="flex items-center gap-1.5">↻ {RECURRENCE_OPTIONS.find(o => o.value === detailEvent.recurrence)?.label}</span>}
+                {(detailEvent.reminder_minutes ?? 0) > 0 && <span className="flex items-center gap-1.5">🔔 {REMINDER_OPTIONS.find(o => o.value === detailEvent.reminder_minutes)?.label} prima</span>}
+              </div>
             )}
             {detailEvent.location && (<div className="mb-5">
               <div className="flex items-start gap-2 text-[var(--color-text-primary)] text-[15px] mb-2.5"><PinIcon className="mt-0.5 shrink-0" /><span className="selectable-text flex-1 break-words">{detailEvent.location}</span></div>
