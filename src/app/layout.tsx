@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Calendario AI",
   description: "Calendario intelligente con assistenza AI",
   manifest: "/manifest.json",
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
