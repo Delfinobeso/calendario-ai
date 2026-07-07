@@ -53,7 +53,7 @@
 html {
   background: var(--color-surface);
   color: var(--color-text-primary);
-  font-family: 'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;

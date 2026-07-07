@@ -46,7 +46,7 @@ export const useSettings = create<SettingsStore>()(
   persist(
     (set, get) => ({
       theme: "dark",
-      font: "sans",
+      font: "system",
       profile: { name: "", role: "" },
 
       setTheme: (theme) => set({ theme }),
