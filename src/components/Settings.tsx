@@ -12,8 +12,7 @@ import { SHEET_TRANSITION, BACKDROP_TRANSITION } from "@/lib/motion";
 import { CheckIcon, MoonIcon, SunIcon, AutoIcon } from "@/components/icons";
 import { pushSupported, getSubscriptionState, enablePush, disablePush } from "@/lib/push";
 
-export default function Settings() {
-  const [open, setOpen] = useState(false);
+export default function Settings({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [saved, setSaved] = useState(false);
   const {
     theme, font, profile,
@@ -40,19 +39,7 @@ export default function Settings() {
 
   return (
     <>
-      {/* ── Trigger button (⚙️) ── */}
-      <button
-        onClick={() => setOpen(true)}
-        className="touch-target flex items-center justify-center w-[44px] h-[44px] rounded-full bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] active:scale-90 transition-transform"
-        aria-label="Impostazioni"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </button>
-
-      {/* ── Sheet ── */}
+      {/* ── Sheet (trigger vive nel Bottom Dock, vedi page.tsx) ── */}
       <AnimatePresence>
         {open && (
           <>
@@ -60,7 +47,7 @@ export default function Settings() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={BACKDROP_TRANSITION}
               className="fixed inset-0 bg-black/40 sheet-blur z-40"
-              onClick={() => setOpen(false)}
+              onClick={onClose}
             />
             <motion.div
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}

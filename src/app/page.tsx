@@ -198,6 +198,7 @@ export default function Home() {
   const [zoom, setZoom] = useState<ZoomLevel>("week");
   const [focusDate, setFocusDate] = useState(today);
   const [swipeKey, setSwipeKey] = useState(0); // force re-mount carousel on window shift
+  const [settingsOpen, setSettingsOpen] = useState(false); // Bottom Dock ORBIT: trigger vive nel dock, non più in header
 
   // Voice input via waveform toggle
   const [voiceActive, setVoiceActive] = useState(false);
@@ -395,7 +396,6 @@ export default function Home() {
           </button>
           <div className="flex items-center gap-1">
             {showToday && <button onClick={jumpToToday} className="touch-target text-[13px] font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-4 py-2 rounded-full active:scale-95">Oggi</button>}
-            <Settings />
           </div>
         </div>
       </header>
@@ -500,16 +500,52 @@ export default function Home() {
         )}
       </div>
 
-      {/* Bottom bar ORBIT — pannello flottante con inset piatto 22px (validato su iPhone
-          reale, libera già l'home indicator da solo: MAI sommarci env(safe-area-inset-bottom)).
-          Niente tab bar multi-destinazione qui: la navigazione Anno/Mese/Settimana/Giorno è
-          a swipe/zoom, non a tab — questo resta un pannello CTA singolo, coerente in stile
-          (vetro, raggio, inset) col dock delle altre app senza inventare tab che non esistono. */}
-      <div className="fixed left-[22px] right-[22px] bottom-[22px] z-30 sheet-blur bg-[var(--color-surface-secondary)]/70 border border-[var(--color-surface-tertiary)]/40 rounded-[28px] p-2">
-        <button onClick={handleOpenNewEvent} className="w-full touch-target py-2.5 bg-[var(--color-accent)] text-black rounded-2xl font-bold text-[16px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
-          <span className="text-lg leading-none">+</span> Nuovo evento
+      {/* Bottom Dock ORBIT — 2 destinazioni reali: Calendario (vista principale) e
+          Impostazioni (era l'icona ingranaggio in header, ora vive qui). Inset piatto
+          22px (validato su iPhone reale, libera già l'home indicator da solo: MAI
+          sommarci env(safe-area-inset-bottom)), raggio concentrico (55px-22px=33px).
+          La navigazione Anno/Mese/Settimana/Giorno resta a swipe/zoom DENTRO la
+          destinazione Calendario — il dock distingue solo Calendario vs Impostazioni. */}
+      <nav className="fixed left-[22px] right-[22px] bottom-[22px] z-30 flex gap-1 sheet-blur bg-[var(--color-surface-secondary)]/70 border border-[var(--color-surface-tertiary)]/40 rounded-[33px] p-1.5">
+        <button
+          onClick={() => setSettingsOpen(false)}
+          aria-label="Calendario"
+          aria-current={!settingsOpen ? "page" : undefined}
+          className={`flex items-center justify-center gap-2 rounded-full py-2.5 transition-[flex-grow,background-color,color] duration-200 ${
+            !settingsOpen ? "flex-none bg-[var(--color-accent)]/16 text-[var(--color-accent)] px-4" : "flex-1 text-[var(--color-text-tertiary)] px-2"
+          }`}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <rect x="3" y="4.5" width="18" height="16" rx="3" /><path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
+          </svg>
+          {!settingsOpen && <span className="whitespace-nowrap text-[13px] font-semibold">Calendario</span>}
         </button>
-      </div>
+        <button
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Impostazioni"
+          aria-current={settingsOpen ? "page" : undefined}
+          className={`flex items-center justify-center gap-2 rounded-full py-2.5 transition-[flex-grow,background-color,color] duration-200 ${
+            settingsOpen ? "flex-none bg-[var(--color-accent)]/16 text-[var(--color-accent)] px-4" : "flex-1 text-[var(--color-text-tertiary)] px-2"
+          }`}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          {settingsOpen && <span className="whitespace-nowrap text-[13px] font-semibold">Impostazioni</span>}
+        </button>
+      </nav>
+
+      {/* FAB ORBIT — Nuovo evento, fluttua sopra il dock (stesso schema di Budgy) */}
+      <button
+        onClick={handleOpenNewEvent}
+        aria-label="Nuovo evento"
+        style={{ bottom: "94px" }}
+        className="fixed right-[22px] z-30 w-14 h-14 rounded-full bg-[var(--color-accent)] text-black shadow-lg active:scale-90 transition-transform flex items-center justify-center"
+      >
+        <span className="text-2xl leading-none">+</span>
+      </button>
+
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* ═══ SHEETS ═══ */}
       <AnimatePresence>
