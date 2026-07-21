@@ -469,7 +469,7 @@ export default function Home() {
       </div>
 
       {/* ── Main view area ── */}
-      <div className="flex-1 min-h-0" style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))" }}>
+      <div className="flex-1 min-h-0" style={{ paddingBottom: "92px" }}>
         {zoom === "year" && (
           <SwipeCarousel key={`y-${focusYear}-${swipeKey}`} onSwipeLeft={goNextYear} onSwipeRight={goPrevYear} keyId={`y-${focusYear}`}>
             <YearView year={focusYear - 1} events={events} direction={0} onTapMonth={(m) => zoomToMonth(m)} onSwipeDown={() => {}} onSwipeUp={() => {}} />
@@ -500,9 +500,12 @@ export default function Home() {
         )}
       </div>
 
-      {/* Bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 px-4 pt-2 bg-[var(--color-surface)] border-t border-[var(--color-surface-tertiary)]/20"
-        style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom, 0px))" }}>
+      {/* Bottom bar ORBIT — pannello flottante con inset piatto 22px (validato su iPhone
+          reale, libera già l'home indicator da solo: MAI sommarci env(safe-area-inset-bottom)).
+          Niente tab bar multi-destinazione qui: la navigazione Anno/Mese/Settimana/Giorno è
+          a swipe/zoom, non a tab — questo resta un pannello CTA singolo, coerente in stile
+          (vetro, raggio, inset) col dock delle altre app senza inventare tab che non esistono. */}
+      <div className="fixed left-[22px] right-[22px] bottom-[22px] z-30 sheet-blur bg-[var(--color-surface-secondary)]/70 border border-[var(--color-surface-tertiary)]/40 rounded-[28px] p-2">
         <button onClick={handleOpenNewEvent} className="w-full touch-target py-2.5 bg-[var(--color-accent)] text-black rounded-2xl font-bold text-[16px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
           <span className="text-lg leading-none">+</span> Nuovo evento
         </button>
