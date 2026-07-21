@@ -1,26 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
 
-/* ── Superhuman-inspired palette ──
-   Dark:  Cod Gray #1b1b1b, Picton Blue #51b1e7, 5-step gray scale
-   Light: neutral gray scale, deeper blue for contrast
-   Neither uses pure black (#000) or pure white (#fff)
-   Text contrast tuned for readability without harshness */
+/* ── Palette ORBIT (vedi /DATA/orbit-design-system/spec.md) ──
+   Stessi nomi variabile del progetto, valori riallineati al design system
+   condiviso con Kino/Budgy/Accendi PC/F1-Dash. I colori per categoria evento
+   (src/lib/timeline.ts) restano invariati: sistema intenzionalmente multi-hue,
+   non fanno parte della disciplina "due accenti". */
 
 /* ── Dark theme (default) ── */
 :root,
 [data-theme="dark"] {
-  --color-surface: #1a1a1c;
-  --color-surface-secondary: #242529;
-  --color-surface-tertiary: #303137;
-  --color-accent: #3fb0dd;
-  --color-text-primary: #f0f0f1;
-  --color-text-secondary: #a0a4ab;
-  --color-text-tertiary: #6f7480;
-  --color-danger: #e85561;
-  --color-success: #54c08a;
-  --color-today: rgba(63, 176, 221, 0.12);
-  --color-weekend: #151517;
+  --color-surface: oklch(0% 0 0);
+  --color-surface-secondary: oklch(12% 0.01 260);
+  --color-surface-tertiary: oklch(17% 0.012 260);
+  --color-accent: oklch(78% 0.15 210);
+  --color-text-primary: oklch(97% 0 0);
+  --color-text-secondary: oklch(74% 0.01 260);
+  --color-text-tertiary: oklch(54% 0.01 260);
+  --color-danger: oklch(70% 0.21 25);
+  --color-success: oklch(78% 0.17 145);
+  --color-today: oklch(78% 0.15 210 / 0.12);
+  --color-weekend: oklch(2% 0.005 260);
   --sat: env(safe-area-inset-top, 0px);
   --sab: min(34px, env(safe-area-inset-bottom, 0px));
   --sal: env(safe-area-inset-left, 0px);
@@ -31,17 +31,17 @@
 
 /* ── Light theme ── */
 [data-theme="light"] {
-  --color-surface: #faf9f7;
-  --color-surface-secondary: #efeeec;
-  --color-surface-tertiary: #e3e2df;
-  --color-accent: #1f86b3;
-  --color-text-primary: #18191b;
-  --color-text-secondary: #5a5f66;
-  --color-text-tertiary: #8a8f96;
-  --color-danger: #d23f4d;
-  --color-success: #2f9e6a;
-  --color-today: rgba(31, 134, 179, 0.10);
-  --color-weekend: #f1f0ed;
+  --color-surface: oklch(97% 0.003 260);
+  --color-surface-secondary: oklch(95% 0.004 260);
+  --color-surface-tertiary: oklch(91% 0.004 260);
+  --color-accent: oklch(53% 0.16 220);
+  --color-text-primary: oklch(20% 0.01 260);
+  --color-text-secondary: oklch(42% 0.01 260);
+  --color-text-tertiary: oklch(58% 0.01 260);
+  --color-danger: oklch(47% 0.22 25);
+  --color-success: oklch(53% 0.16 150);
+  --color-today: oklch(53% 0.16 220 / 0.10);
+  --color-weekend: oklch(94% 0.004 260);
 }
 
 * {
