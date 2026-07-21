@@ -182,6 +182,34 @@ function ReminderPicker({ value, onChange }: { value: number; onChange: (v: numb
   );
 }
 
+// ── "Altre opzioni" — ricorrenza/promemoria/descrizione sono usate meno spesso
+// del titolo/data/ora: collassate di default per un add veloce, ma con un
+// riassunto visibile sul trigger così un valore già impostato non sparisce mai. ──
+function advancedSummary(form: { recurrence: string; reminder: number; desc: string }): string {
+  return [
+    form.recurrence ? `↻ ${RECURRENCE_OPTIONS.find(o => o.value === form.recurrence)?.label}` : "",
+    form.reminder ? `🔔 ${REMINDER_OPTIONS.find(o => o.value === form.reminder)?.label}` : "",
+    form.desc.trim() ? "Descrizione" : "",
+  ].filter(Boolean).join(" · ");
+}
+function hasAdvancedData(form: { recurrence: string; reminder: number; desc: string }): boolean {
+  return Boolean(form.recurrence || form.reminder || form.desc.trim());
+}
+function AdvancedToggle({ open, onToggle, summary }: { open: boolean; onToggle: () => void; summary: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center justify-between px-1 py-2 text-left touch-target"
+    >
+      <span className="text-[13px] font-semibold text-[var(--color-text-secondary)] truncate pr-2">
+        {open ? "Meno opzioni" : summary ? `Altre opzioni · ${summary}` : "Altre opzioni (ripeti, promemoria, note)"}
+      </span>
+      <ChevronUpIcon className={`shrink-0 opacity-50 transition-transform duration-200 ${open ? "" : "rotate-180"}`} />
+    </button>
+  );
+}
+
 export default function Home() {
   const { events, addEvent, removeEvent, loadEvents, updateEvent } = useCalendar();
   const {
@@ -309,7 +337,13 @@ export default function Home() {
   const resetForm = useCallback(() => setForm(blankForm()), []);
   const closeAndResetSheet = useCallback(() => { resetForm(); closeSheet(); }, [resetForm, closeSheet]);
   const closeAndResetEdit = useCallback(() => { setConfirmDelete(false); resetForm(); closeEdit(); }, [resetForm, closeEdit]);
-  const handleOpenNewEvent = () => { resetForm(); openSheet(); };
+  const handleOpenNewEvent = () => { resetForm(); setMoreOpen(false); openSheet(); };
+
+  // ── "Altre opzioni" disclosure state — collassata di default sul nuovo evento
+  // (add veloce), aperta di default in modifica solo se l'evento ha già dati
+  // avanzati (mai nascondere una ricorrenza/promemoria/nota già impostata). ──
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [moreOpenEdit, setMoreOpenEdit] = useState(false);
 
   // ── Title validation feedback (no silent no-op on empty title) ──
   const [titleError, setTitleError] = useState(false);
@@ -366,7 +400,8 @@ export default function Home() {
   const handleOpenEdit = useCallback((ev: CalendarEvent) => {
     // Editing a recurrence occurrence edits the whole series — open on the master anchor.
     const master = ev._occurrence ? (useCalendar.getState().masters.find(m => m.id === (ev.master_id ?? ev.id)) ?? ev) : ev;
-    setForm(formFromEvent(master)); setConfirmDelete(false); openEdit(master);
+    const f = formFromEvent(master);
+    setForm(f); setConfirmDelete(false); setMoreOpenEdit(hasAdvancedData(f)); openEdit(master);
   }, [openEdit]);
   const handleOpenEditFromDetail = useCallback(() => { if (!detailEvent) return; closeDetail(); handleOpenEdit(detailEvent); }, [detailEvent, closeDetail, handleOpenEdit]);
 
@@ -561,11 +596,6 @@ export default function Home() {
                   titleError ? "ring-2 ring-[var(--color-danger)]" : "focus:ring-2 ring-[var(--color-accent)]/50"
                 }`}
                 placeholder="Titolo evento" value={form.title} onChange={e => { setForm(f => ({ ...f, title: e.target.value })); setTitleError(false); }} autoFocus />
-              <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]"
-                placeholder="Luogo" value={form.loc} onChange={e => setForm(f => ({ ...f, loc: e.target.value }))} />
-              <CategoryPicker value={form.category} onChange={c => setForm(f => ({ ...f, category: c }))} />
-              <RecurrencePicker value={form.recurrence} until={form.recurrenceUntil} onChange={v => setForm(f => ({ ...f, recurrence: v }))} onUntilChange={v => setForm(f => ({ ...f, recurrenceUntil: v }))} />
-              <ReminderPicker value={form.reminder} onChange={v => setForm(f => ({ ...f, reminder: v }))} />
               <label className="block"><span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
                 <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></label>
               <div className="flex gap-3">
@@ -574,8 +604,22 @@ export default function Home() {
                 <label className="flex-1 block"><span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Fine</span>
                   <input type="time" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} /></label>
               </div>
-              <textarea className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px] resize-none"
-                placeholder="Descrizione" rows={3} value={form.desc} onChange={e => setForm(f => ({ ...f, desc: e.target.value }))} />
+              <CategoryPicker value={form.category} onChange={c => setForm(f => ({ ...f, category: c }))} />
+              <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]"
+                placeholder="Luogo" value={form.loc} onChange={e => setForm(f => ({ ...f, loc: e.target.value }))} />
+              <div className="border-t border-[var(--color-surface-tertiary)]/40 pt-1">
+                <AdvancedToggle open={moreOpen} onToggle={() => setMoreOpen(o => !o)} summary={advancedSummary(form)} />
+                <AnimatePresence initial={false}>
+                  {moreOpen && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="space-y-3.5 pt-2.5">
+                      <RecurrencePicker value={form.recurrence} until={form.recurrenceUntil} onChange={v => setForm(f => ({ ...f, recurrence: v }))} onUntilChange={v => setForm(f => ({ ...f, recurrenceUntil: v }))} />
+                      <ReminderPicker value={form.reminder} onChange={v => setForm(f => ({ ...f, reminder: v }))} />
+                      <textarea className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px] resize-none"
+                        placeholder="Descrizione" rows={3} value={form.desc} onChange={e => setForm(f => ({ ...f, desc: e.target.value }))} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               <button type="submit" className="w-full touch-target bg-[var(--color-accent)] text-black font-bold rounded-xl py-4 active:scale-[0.98] text-[16px]">Aggiungi evento</button>
             </form>
           </motion.div>
@@ -595,11 +639,6 @@ export default function Home() {
                   titleError ? "ring-2 ring-[var(--color-danger)]" : "focus:ring-2 ring-[var(--color-accent)]/50"
                 }`}
                 placeholder="Titolo" value={form.title} onChange={e => { setForm(f => ({ ...f, title: e.target.value })); setTitleError(false); }} autoFocus />
-              <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]"
-                placeholder="Luogo" value={form.loc} onChange={e => setForm(f => ({ ...f, loc: e.target.value }))} />
-              <CategoryPicker value={form.category} onChange={c => setForm(f => ({ ...f, category: c }))} />
-              <RecurrencePicker value={form.recurrence} until={form.recurrenceUntil} onChange={v => setForm(f => ({ ...f, recurrence: v }))} onUntilChange={v => setForm(f => ({ ...f, recurrenceUntil: v }))} />
-              <ReminderPicker value={form.reminder} onChange={v => setForm(f => ({ ...f, reminder: v }))} />
               <label className="block"><span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Data</span>
                 <input type="date" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></label>
               <div className="flex gap-3">
@@ -608,8 +647,22 @@ export default function Home() {
                 <label className="flex-1 block"><span className="block text-[12px] text-[var(--color-text-secondary)] mb-1.5 ml-1">Fine</span>
                   <input type="time" className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} /></label>
               </div>
-              <textarea className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px] resize-none"
-                placeholder="Descrizione" rows={3} value={form.desc} onChange={e => setForm(f => ({ ...f, desc: e.target.value }))} />
+              <CategoryPicker value={form.category} onChange={c => setForm(f => ({ ...f, category: c }))} />
+              <input className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px]"
+                placeholder="Luogo" value={form.loc} onChange={e => setForm(f => ({ ...f, loc: e.target.value }))} />
+              <div className="border-t border-[var(--color-surface-tertiary)]/40 pt-1">
+                <AdvancedToggle open={moreOpenEdit} onToggle={() => setMoreOpenEdit(o => !o)} summary={advancedSummary(form)} />
+                <AnimatePresence initial={false}>
+                  {moreOpenEdit && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="space-y-3.5 pt-2.5">
+                      <RecurrencePicker value={form.recurrence} until={form.recurrenceUntil} onChange={v => setForm(f => ({ ...f, recurrence: v }))} onUntilChange={v => setForm(f => ({ ...f, recurrenceUntil: v }))} />
+                      <ReminderPicker value={form.reminder} onChange={v => setForm(f => ({ ...f, reminder: v }))} />
+                      <textarea className="w-full bg-[var(--color-surface-secondary)] rounded-xl px-4 py-4 text-[var(--color-text-primary)] placeholder-[var(--color-text-tertiary)] outline-none focus:ring-2 ring-[var(--color-accent)]/50 text-[16px] resize-none"
+                        placeholder="Descrizione" rows={3} value={form.desc} onChange={e => setForm(f => ({ ...f, desc: e.target.value }))} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               {!confirmDelete ? (
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setConfirmDelete(true)} className="flex-1 touch-target py-4 bg-[var(--color-danger)] text-white rounded-xl font-bold text-[16px] active:scale-[0.98]">Elimina</button>
