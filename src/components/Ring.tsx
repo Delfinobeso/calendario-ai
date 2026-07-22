@@ -30,7 +30,7 @@ export default function Ring({
   return (
     <span className="relative inline-flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
       <svg
-        className={`ring absolute inset-0 ${state === "pulse" ? "ring-pulse" : ""}`}
+        className={`status-ring absolute inset-0 ${state === "pulse" ? "ring-pulse" : ""}`}
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}

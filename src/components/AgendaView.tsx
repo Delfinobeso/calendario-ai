@@ -9,8 +9,6 @@ import { getEventColor } from "@/lib/timeline";
 import { useHorizontalSwipe } from "@/lib/swipe";
 import { CalendarEmptyIcon } from "@/components/icons";
 
-const DAYS_AHEAD = 14;
-
 function addDays(d: Date, n: number): Date { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 
 function dayLabel(d: Date, today: Date): string {
@@ -68,9 +66,16 @@ export default function AgendaView({
   const today = useMemo(() => new Date(), []);
   const isRealToday = isSameDay(anchorDate, today);
 
-  const rollover = useMemo(() => getRolloverTodos(events, today), [events, today]);
-
-  const days = useMemo(() => Array.from({ length: DAYS_AHEAD }, (_, i) => addDays(anchorDate, i)), [anchorDate]);
+  // Vista a GIORNO SINGOLO (feedback Aziz): il giorno selezionato e basta —
+  // "Da fare" del giorno + impegni del giorno; swipe ←/→ ovunque per cambiare giorno.
+  const rollover = useMemo(() => (isRealToday ? getRolloverTodos(events, today) : []), [events, today, isRealToday]);
+  const dayItems = useMemo(
+    () => getDayItemsExcludingRollover(events, anchorDate, today).slice().sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()),
+    [events, anchorDate, today]
+  );
+  const dayTodos = useMemo(() => dayItems.filter((e) => e.kind === "todo"), [dayItems]);
+  const dayEvents = useMemo(() => dayItems.filter((e) => e.kind !== "todo"), [dayItems]);
+  const todos = useMemo(() => [...rollover, ...dayTodos.filter((t) => !rollover.some((r) => r.id === t.id))], [rollover, dayTodos]);
 
   const goPrev = () => onAnchorChange(addDays(anchorDate, -1));
   const goNext = () => onAnchorChange(addDays(anchorDate, 1));
@@ -119,48 +124,44 @@ export default function AgendaView({
         </div>
       </header>
 
-      {/* Body — Da fare in cima, poi giorni a scorrere */}
-      <div className="flex-1 min-h-0 overflow-y-auto gpu-scroll touch-pan-y px-4" style={{ paddingBottom: "180px" }}>
-        {rollover.length > 0 && (
+      {/* Body — SOLO il giorno selezionato: Da fare + impegni. Swipe ovunque cambia giorno. */}
+      <div
+        key={anchorDate.toDateString() /* rientro dolce a ogni cambio giorno */}
+        className="flex-1 min-h-0 overflow-y-auto gpu-scroll touch-pan-y px-4 enter-view"
+        style={{ paddingBottom: "180px", transform: dragging ? `translateX(${dragX * 0.35}px)` : undefined, transition: dragging ? "none" : "transform var(--dur-base) var(--ease-orbit)" }}
+        {...handlers}
+      >
+        {todos.length > 0 && (
           <section className="mb-5">
             <h2 className="text-[12px] font-bold uppercase tracking-wide text-[var(--text-2)] mb-2 ml-1">Da fare</h2>
             <div className="glass-1 rounded-[var(--r-md)] px-3 py-1 [&>*+*]:border-t [&>*+*]:border-[var(--hairline)]">
-              {rollover.map((ev) => (
-                <TodoRow key={ev.id} ev={ev} onTap={() => onTapEvent(ev)} onToggle={() => ev.id != null && onToggleTodo(ev.id)} />
+              {todos.map((ev) => (
+                <TodoRow key={ev.id ?? `${ev.master_id}-${ev.start_time}`} ev={ev} onTap={() => onTapEvent(ev)} onToggle={() => ev.id != null && onToggleTodo(ev.id)} />
               ))}
             </div>
           </section>
         )}
 
-        {days.map((d) => {
-          const items = getDayItemsExcludingRollover(events, d, today).slice().sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-          return (
-            <section key={d.toISOString()} className="mb-4">
-              <h2 className="text-[12px] font-bold uppercase tracking-wide mb-2 ml-1 capitalize" style={{ color: isToday(d) ? "var(--flare-hi)" : "var(--text-2)" }}>
-                {dayLabel(d, today)}
-              </h2>
-              {items.length === 0 ? (
-                <div className="flex items-center gap-2 py-2 px-1">
-                  <div className="flex-1 h-px" style={{ background: "var(--hairline)" }} />
-                  <span className="text-[11px] text-[var(--text-3)]">Nessun evento</span>
-                  <div className="flex-1 h-px" style={{ background: "var(--hairline)" }} />
-                </div>
-              ) : (
-                <div className="glass-1 rounded-[var(--r-md)] px-3 py-1 [&>*+*]:border-t [&>*+*]:border-[var(--hairline)]">
-                  {items.map((ev) => ev.kind === "todo"
-                    ? <TodoRow key={ev.id ?? `${ev.master_id}-${ev.start_time}`} ev={ev} onTap={() => onTapEvent(ev)} onToggle={() => ev.id != null && onToggleTodo(ev.id)} />
-                    : <EventRow key={ev.id ?? `${ev.master_id}-${ev.start_time}`} ev={ev} onTap={() => onTapEvent(ev)} />
-                  )}
-                </div>
-              )}
-            </section>
-          );
-        })}
+        {dayEvents.length > 0 && (
+          <section className="mb-4">
+            <h2 className="text-[12px] font-bold uppercase tracking-wide mb-2 ml-1 capitalize" style={{ color: isToday(anchorDate) ? "var(--flare-hi)" : "var(--text-2)" }}>
+              Impegni
+            </h2>
+            <div className="glass-1 rounded-[var(--r-md)] px-3 py-1 [&>*+*]:border-t [&>*+*]:border-[var(--hairline)]">
+              {dayEvents.map((ev) => (
+                <EventRow key={ev.id ?? `${ev.master_id}-${ev.start_time}`} ev={ev} onTap={() => onTapEvent(ev)} />
+              ))}
+            </div>
+          </section>
+        )}
 
-        {rollover.length === 0 && days.every((d) => getDayItemsExcludingRollover(events, d, today).length === 0) && (
+        {todos.length === 0 && dayEvents.length === 0 && (
           <div className="flex flex-col items-center justify-center text-center px-8 py-16">
             <CalendarEmptyIcon className="mb-2 opacity-40 text-[var(--text-2)]" />
-            <p className="text-[14px] text-[var(--text-2)] font-medium">Nessun evento nei prossimi {DAYS_AHEAD} giorni</p>
+            <p className="text-[14px] text-[var(--text-2)] font-medium">
+              {isRealToday ? "Niente in programma oggi" : "Niente in programma"}
+            </p>
+            <p className="text-[12px] text-[var(--text-3)] mt-1">Scrivi o detta qui sotto per aggiungere</p>
           </div>
         )}
       </div>

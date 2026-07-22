@@ -202,7 +202,9 @@ export default function Home() {
   // ── Dock / AI bar visibility ──
   const anySheetOpen = sheetOpen || !!detailEvent || !!aiPreview;
   const keyboardInset = useKeyboardInset();
-  const dockHidden = anySheetOpen || keyboardInset > 0;
+  const [aiFocused, setAiFocused] = useState(false);
+  // il dock sparisce anche al solo focus dell'input AI: in quel contesto è inutile (feedback Aziz)
+  const dockHidden = anySheetOpen || keyboardInset > 0 || aiFocused;
   const aiBarBottom = keyboardInset > 0 ? keyboardInset + 12 : 104;
 
   return (
@@ -233,7 +235,7 @@ export default function Home() {
       <AIBar
         value={aiInput} onChange={setAiInput} onSubmit={handleAISubmit} loading={aiLoading} aiResult={aiResult}
         voiceActive={voiceActive} voiceBusy={voiceBusy} onVoiceToggle={handleVoiceToggle} onVoiceDone={handleVoiceDone}
-        onVoiceParsed={handleVoiceParsed} hidden={anySheetOpen} bottom={aiBarBottom}
+        onVoiceParsed={handleVoiceParsed} hidden={anySheetOpen} bottom={aiBarBottom} onFocusChange={setAiFocused}
       />
       <TabBar active={view} onSelect={setView} hidden={dockHidden} />
 

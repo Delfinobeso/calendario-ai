@@ -36,7 +36,7 @@ function SparkleIcon() {
 // dock quando un foglio è aperto/tastiera attiva è gestito dal parent (page.tsx).
 export default function AIBar({
   value, onChange, onSubmit, loading, aiResult,
-  voiceActive, voiceBusy, onVoiceToggle, onVoiceDone, onVoiceParsed, hidden = false, bottom,
+  voiceActive, voiceBusy, onVoiceToggle, onVoiceDone, onVoiceParsed, hidden = false, bottom, onFocusChange,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -48,6 +48,7 @@ export default function AIBar({
   onVoiceToggle: () => void;
   onVoiceDone: () => void;
   onVoiceParsed: (parsed: ParsedEvent, conflicts: { title: string }[]) => void;
+  onFocusChange?: (focused: boolean) => void;
   hidden?: boolean;
   bottom: number;
 }) {
@@ -83,6 +84,8 @@ export default function AIBar({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+              onFocus={() => onFocusChange?.(true)}
+              onBlur={() => onFocusChange?.(false)}
               enterKeyHint="go"
             />
           </>
