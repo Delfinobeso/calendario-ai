@@ -199,13 +199,32 @@ export default function Home() {
 
   const handleTapDayElsewhere = useCallback((d: Date) => { setAgendaAnchor(d); setView("agenda"); }, []);
 
+  // ── Quick-add inline in Agenda (§1, stile Promemoria) ──
+  const handleQuickAddTodo = useCallback(async (title: string) => {
+    const d = agendaAnchor.toISOString().slice(0, 10);
+    try {
+      await addEvent({
+        title, location: "", description: "", category: "", kind: "todo", completed: false,
+        recurrence: "", recurrence_until: null, reminder_minutes: 0,
+        start_time: `${d}T09:00:00`, end_time: `${d}T09:00:00`, source: "manual",
+      });
+    } catch { setError("Errore nel salvare."); }
+  }, [addEvent, agendaAnchor, setError]);
+
   // ── Dock / AI bar visibility ──
   const anySheetOpen = sheetOpen || !!detailEvent || !!aiPreview;
   const keyboardInset = useKeyboardInset();
   const [aiFocused, setAiFocused] = useState(false);
   // il dock sparisce anche al solo focus dell'input AI: in quel contesto è inutile (feedback Aziz)
   const dockHidden = anySheetOpen || keyboardInset > 0 || aiFocused;
-  const aiBarBottom = keyboardInset > 0 ? keyboardInset + 12 : 104;
+  // §4: quando il dock è nascosto la AI bar scende, mai a mezz'aria col buco sotto.
+  const aiBarBottom = keyboardInset > 0 ? keyboardInset + 8 : dockHidden ? 16 : 104;
+
+  // ── Azione centrale del dock (§2): unico punto d'ingresso per un nuovo
+  // appuntamento, identico su ogni tab — la data di default segue la vista attiva.
+  const handleDockAddNew = useCallback(() => {
+    openCreateSheet(view === "agenda" ? agendaAnchor : today);
+  }, [openCreateSheet, view, agendaAnchor, today]);
 
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-[var(--void)]" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
@@ -213,20 +232,20 @@ export default function Home() {
         {view === "agenda" && (
           <AgendaView
             events={events} anchorDate={agendaAnchor} onAnchorChange={setAgendaAnchor}
-            onAddNew={() => openCreateSheet(agendaAnchor)} onTapEvent={openDetail} onToggleTodo={toggleTodoComplete}
+            onTapEvent={openDetail} onToggleTodo={toggleTodoComplete} onQuickAddTodo={handleQuickAddTodo}
           />
         )}
         {view === "week" && (
           <WeekView
             weekStart={weekStart} events={events} onWeekChange={setWeekStart}
-            onAddNew={() => openCreateSheet(today)} onTapDay={handleTapDayElsewhere} onTapEvent={openDetail}
+            onTapDay={handleTapDayElsewhere} onTapEvent={openDetail}
           />
         )}
         {view === "month" && (
           <MonthView
             year={monthYear} month={monthMonth} events={events}
             onMonthChange={(y, m) => { setMonthYear(y); setMonthMonth(m); }}
-            onAddNew={() => openCreateSheet(today)} onTapDay={handleTapDayElsewhere} onTapEvent={openDetail}
+            onTapDay={handleTapDayElsewhere} onTapEvent={openDetail}
           />
         )}
         {view === "settings" && <SettingsView />}
@@ -237,7 +256,7 @@ export default function Home() {
         voiceActive={voiceActive} voiceBusy={voiceBusy} onVoiceToggle={handleVoiceToggle} onVoiceDone={handleVoiceDone}
         onVoiceParsed={handleVoiceParsed} hidden={anySheetOpen} bottom={aiBarBottom} onFocusChange={setAiFocused}
       />
-      <TabBar active={view} onSelect={setView} hidden={dockHidden} />
+      <TabBar active={view} onSelect={setView} onAddNew={handleDockAddNew} hidden={dockHidden} />
 
       <EventSheet
         open={sheetOpen} onClose={closeSheet} mode={sheetMode} form={form} setForm={setForm}

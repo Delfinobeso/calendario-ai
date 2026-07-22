@@ -2,9 +2,13 @@
 
 export type MainView = "agenda" | "week" | "month" | "settings";
 
-const TABS: { key: MainView; label: string; icon: string }[] = [
+// Ordine dock v2.5: Agenda · Settimana · [+] · Mese · Impostazioni — lo slot
+// centrale (azione "+") si inserisce tra le prime due tab e le ultime due.
+const TABS_LEFT: { key: MainView; label: string; icon: string }[] = [
   { key: "agenda", label: "Agenda", icon: "agenda" },
   { key: "week", label: "Settimana", icon: "week" },
+];
+const TABS_RIGHT: { key: MainView; label: string; icon: string }[] = [
   { key: "month", label: "Mese", icon: "month" },
   { key: "settings", label: "Impostazioni", icon: "gear" },
 ];
@@ -28,15 +32,55 @@ function Icon({ name }: { name: string }) {
   );
 }
 
-// Bottom Dock ORBIT (spec §8.5, pattern CONGELATO — identico a Kino/Budgy):
-// inset piatto 22px su left/right/bottom (libera da solo l'home indicator, MAI
-// sommare env(safe-area-inset-bottom)), raggio concentrico barra/pillola 33/25,
-// 4 slot fissi flex:1 1 0 (zero animazioni di layout), altezza tab 56px, icona
-// 24px + label 10px sotto sempre visibile. Attiva = enfasi NEUTRA sull'intero
-// slot (pillola --tab-pill, testo/icona text-1), MAI un tint rosso: l'accent
-// nel dock non vive qui (nessuna azione centrale "+" — il "+" vive nella top
-// bar della vista corrente).
-export default function TabBar({ active, onSelect, hidden = false }: { active: MainView; onSelect: (v: MainView) => void; hidden?: boolean }) {
+function PlusIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--flare-hi)" strokeWidth="2" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function Tab({ tab, active, onSelect }: { tab: { key: MainView; label: string; icon: string }; active: boolean; onSelect: (v: MainView) => void }) {
+  return (
+    <button
+      onClick={() => onSelect(tab.key)}
+      aria-label={tab.label}
+      aria-current={active ? "page" : undefined}
+      className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-[3px] rounded-[25px] px-1 py-1"
+      style={{
+        backgroundColor: active ? "var(--tab-pill)" : "transparent",
+        color: active ? "var(--text-1)" : "var(--text-2)",
+        transitionProperty: "background-color,color",
+        transitionDuration: "var(--dur-fast)",
+        transitionTimingFunction: "var(--ease-snap)",
+      }}
+    >
+      <Icon name={tab.icon} />
+      <span className="whitespace-nowrap text-[10px] font-semibold leading-none tracking-[-0.01em]">
+        {tab.label}
+      </span>
+    </button>
+  );
+}
+
+// Bottom Dock ORBIT v2.5 (spec §8.5): inset piatto 22px su left/right/bottom
+// (libera da solo l'home indicator, MAI sommare env(safe-area-inset-bottom)),
+// raggio concentrico barra/pillola 33/25, 5 slot fissi flex:1 1 0 (zero
+// animazioni di layout), altezza tab 56px, icona 24px + label 10px sotto
+// sempre visibile. Attiva = enfasi NEUTRA sull'intero slot (pillola
+// --tab-pill, testo/icona text-1), MAI un tint rosso sulle tab: l'accent nel
+// dock vive SOLO nell'icona dell'azione centrale "+" (vetro neutro
+// --surface-3, pattern .dock-center-btn congelato — riferimento
+// /media/SSD-256/AppData/workspace/Budgy/index.html). Il "+" apre sempre lo
+// sheet "Nuovo appuntamento", identico su ogni tab, e non partecipa allo
+// stato attivo/inattivo delle tab.
+export default function TabBar({ active, onSelect, onAddNew, hidden = false }: {
+  active: MainView;
+  onSelect: (v: MainView) => void;
+  onAddNew: () => void;
+  hidden?: boolean;
+}) {
   return (
     <nav
       className="glass-2 fixed left-[22px] right-[22px] bottom-[22px] z-30 mx-auto flex max-w-md gap-0.5 rounded-[33px] p-2"
@@ -48,30 +92,39 @@ export default function TabBar({ active, onSelect, hidden = false }: { active: M
         transitionTimingFunction: "var(--ease-snap)",
       }}
     >
-      {TABS.map((t) => {
-        const isActive = active === t.key;
-        return (
+      {TABS_LEFT.map((t) => (
+        <Tab key={t.key} tab={t} active={active === t.key} onSelect={onSelect} />
+      ))}
+
+      <div className="flex flex-1 items-center justify-center">
+        {/* wrapper: solleva ~10px sopra il filo della barra (§8.5) senza
+            interferire col transform di press del bottone interno (uno
+            style inline sul transform vincerebbe sempre su active:scale) */}
+        <div style={{ transform: "translateY(-10px)" }}>
           <button
-            key={t.key}
-            onClick={() => onSelect(t.key)}
-            aria-label={t.label}
-            aria-current={isActive ? "page" : undefined}
-            className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-[3px] rounded-[25px] px-1 py-1"
+            type="button"
+            onClick={onAddNew}
+            aria-label="Nuovo appuntamento"
+            className="flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full active:scale-[0.97]"
             style={{
-              backgroundColor: isActive ? "var(--tab-pill)" : "transparent",
-              color: isActive ? "var(--text-1)" : "var(--text-2)",
-              transitionProperty: "background-color,color",
+              background: "var(--surface-3)",
+              backdropFilter: "blur(20px) saturate(180%)",
+              WebkitBackdropFilter: "blur(20px) saturate(180%)",
+              border: "1px solid var(--hairline)",
+              boxShadow: "0 6px 18px oklch(0% 0 0 / .35)",
+              transitionProperty: "transform",
               transitionDuration: "var(--dur-fast)",
               transitionTimingFunction: "var(--ease-snap)",
             }}
           >
-            <Icon name={t.icon} />
-            <span className="whitespace-nowrap text-[10px] font-semibold leading-none tracking-[-0.01em]">
-              {t.label}
-            </span>
+            <PlusIcon />
           </button>
-        );
-      })}
+        </div>
+      </div>
+
+      {TABS_RIGHT.map((t) => (
+        <Tab key={t.key} tab={t} active={active === t.key} onSelect={onSelect} />
+      ))}
     </nav>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Sheet from "@/components/Sheet";
+import HoldToConfirm from "@/components/HoldToConfirm";
 import { PinIcon, MapIcon, CompassIcon } from "@/components/icons";
 import { CATEGORY_LABELS, CATEGORY_COLORS } from "@/lib/timeline";
 import { formatTime, type CalendarEvent } from "@/store/calendar";
@@ -29,8 +29,6 @@ export default function DetailSheet({
   onDelete: () => void;
   onToggleComplete?: () => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  useEffect(() => { setConfirmDelete(false); }, [event]);
   const isTodo = event?.kind === "todo";
 
   return (
@@ -39,20 +37,28 @@ export default function DetailSheet({
         <>
           <div className="flex items-start gap-3 mb-1">
             {isTodo && (
+              // Stessa correzione della checkbox Agenda: bottone 44px invisibile
+              // come area di tap, cerchio disegnato 24px in uno span interno
+              // (bug reale v1: touch-target forzava min-w/h 44 sull'elemento
+              // col bordo/sfondo, ingrandendolo).
               <button
                 onClick={onToggleComplete}
                 aria-label={event.completed ? "Segna da fare" : "Segna completata"}
-                className="mt-1 shrink-0 touch-target w-7 h-7 -m-1.5 flex items-center justify-center rounded-full border-2"
-                style={{
-                  borderColor: event.completed ? "var(--signal)" : "var(--text-3)",
-                  background: event.completed ? "var(--signal)" : "transparent",
-                  transitionProperty: "background-color,border-color",
-                  transitionDuration: "220ms",
-                }}
+                className="mt-1 shrink-0 w-11 h-11 -m-2.5 flex items-center justify-center"
               >
-                {event.completed && (
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                )}
+                <span
+                  className="w-6 h-6 rounded-full border-2 flex items-center justify-center"
+                  style={{
+                    borderColor: event.completed ? "var(--signal)" : "var(--text-3)",
+                    backgroundColor: event.completed ? "var(--signal)" : "transparent",
+                    transitionProperty: "background-color,border-color",
+                    transitionDuration: "220ms",
+                  }}
+                >
+                  {event.completed && (
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  )}
+                </span>
               </button>
             )}
             <h2 id="detail-sheet-title" className="selectable-text text-[20px] font-bold break-words text-[var(--text-1)]" style={event.completed ? { textDecoration: "line-through", opacity: 0.5 } : undefined}>
@@ -95,20 +101,12 @@ export default function DetailSheet({
             </div>
           )}
 
-          {!confirmDelete ? (
-            <div className="flex gap-3 mb-2">
-              <button onClick={() => setConfirmDelete(true)} className="flex-1 touch-target py-4 rounded-[var(--r-md)] font-bold text-[16px] active:scale-[0.98] bg-transparent border" style={{ color: "var(--alert)", borderColor: "var(--alert)" }}>Elimina</button>
-              <button onClick={onEdit} className="flex-[2] touch-target font-bold rounded-[var(--r-md)] py-4 active:scale-[0.98] text-[16px] text-white" style={{ background: "var(--flare)" }}>Modifica</button>
-            </div>
-          ) : (
-            <div className="space-y-2.5 mb-2">
-              <p className="text-[13px] text-[var(--text-2)] text-center">Eliminare definitivamente?</p>
-              <div className="flex gap-3">
-                <button onClick={() => setConfirmDelete(false)} className="flex-1 touch-target py-4 rounded-[var(--r-md)] font-bold text-[16px] active:scale-[0.98] bg-[var(--surface-1)] text-[var(--text-1)]">Annulla</button>
-                <button onClick={onDelete} className="flex-1 touch-target py-4 rounded-[var(--r-md)] font-bold text-[16px] active:scale-[0.98] bg-transparent border" style={{ color: "var(--alert)", borderColor: "var(--alert)" }}>Conferma</button>
-              </div>
-            </div>
-          )}
+          {/* Hold-to-confirm radiale (§11.2) al posto del doppio-tap: sostituisce
+              il dialog di conferma per l'eliminazione, irreversibile. */}
+          <div className="flex gap-3 mb-2">
+            <div className="flex-1"><HoldToConfirm label="Tieni per eliminare" doneLabel="Eliminato" onConfirm={onDelete} /></div>
+            <button onClick={onEdit} className="flex-[2] touch-target font-bold rounded-[var(--r-md)] py-4 active:scale-[0.98] text-[16px] text-white" style={{ background: "var(--flare)" }}>Modifica</button>
+          </div>
         </>
       )}
     </Sheet>

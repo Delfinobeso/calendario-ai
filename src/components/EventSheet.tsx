@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Sheet from "@/components/Sheet";
+import HoldToConfirm from "@/components/HoldToConfirm";
 import { ChevronUpIcon } from "@/components/icons";
 import { CATEGORY_ORDER, CATEGORY_LABELS, CATEGORY_COLORS } from "@/lib/timeline";
 import type { EventKind, Recurrence } from "@/store/calendar";
@@ -66,31 +67,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inputCls = "w-full rounded-[var(--r-md)] px-4 py-4 text-[var(--text-1)] placeholder-[var(--text-3)] outline-none text-[16px] transition-shadow bg-[var(--surface-1)] border border-[var(--hairline)] focus:border-[var(--hairline-hi)]";
-
-function KindToggle({ value, onChange }: { value: EventKind; onChange: (k: EventKind) => void }) {
-  return (
-    <div className="flex gap-1 rounded-[var(--r-sm)] bg-[var(--surface-1)] border border-[var(--hairline)] p-[3px]">
-      {(["event", "todo"] as EventKind[]).map((k) => (
-        <button
-          key={k}
-          type="button"
-          onClick={() => onChange(k)}
-          className="flex-1 py-2.5 rounded-[11px] text-[13px] font-semibold"
-          style={{
-            background: value === k ? "var(--surface-3)" : "transparent",
-            borderTop: value === k ? "1px solid var(--hairline-hi)" : "1px solid transparent",
-            color: value === k ? "var(--text-1)" : "var(--text-2)",
-            transitionProperty: "background-color,color",
-            transitionDuration: "var(--dur-base)",
-            transitionTimingFunction: "var(--ease-orbit)",
-          }}
-        >
-          {k === "event" ? "Evento" : "Attività"}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function CategoryPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
   return (
@@ -169,11 +145,16 @@ export default function EventSheet({
   setTitleError: (v: boolean) => void;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
+  // Il toggle Evento/Attività sparisce (§3): le attività si creano SOLO
+  // inline in Agenda ora. Questo sheet crea sempre un "appuntamento" (kind
+  // "event"); la modifica di un'attività esistente (tap su una todo) resta
+  // possibile ma con lo sheet RIDOTTO a titolo/data/elimina — via più semplice
+  // scelta rispetto a duplicare un secondo componente sheet dedicato.
+  const isTodoEdit = mode === "edit" && form.kind === "todo";
 
   useEffect(() => {
-    if (open) { setMoreOpen(hasAdvancedData(form)); setConfirmDelete(false); }
+    if (open) setMoreOpen(hasAdvancedData(form));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -188,15 +169,13 @@ export default function EventSheet({
   return (
     <Sheet open={open} onClose={onClose} labelledBy="event-sheet-title">
       <h2 id="event-sheet-title" className="text-[20px] font-bold mb-5 text-[var(--text-1)]">
-        {mode === "create" ? "Nuovo" : "Modifica"}
+        {mode === "create" ? "Nuovo appuntamento" : isTodoEdit ? "Modifica attività" : "Modifica"}
       </h2>
       <form onSubmit={onSubmit} className="space-y-3.5">
-        <KindToggle value={form.kind} onChange={(k) => setForm(f => ({ ...f, kind: k }))} />
-
         <input
           ref={titleRef}
           className={`${inputCls} ${titleError ? "!border-[var(--alert)]" : ""}`}
-          placeholder={form.kind === "todo" ? "Cosa devi fare?" : "Titolo evento"}
+          placeholder={isTodoEdit ? "Cosa devi fare?" : "Cosa hai in programma?"}
           value={form.title}
           onChange={(e) => { setForm(f => ({ ...f, title: e.target.value })); setTitleError(false); }}
           autoFocus
@@ -206,32 +185,32 @@ export default function EventSheet({
           <input type="date" className={inputCls} value={form.date} onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))} />
         </Field>
 
-        {form.kind === "event" && (
-          <div className="flex gap-3">
-            <div className="flex-1"><Field label="Inizio">
-              <input type="time" className={inputCls} value={form.startTime} onChange={(e) => setForm(f => ({ ...f, startTime: e.target.value }))} />
-            </Field></div>
-            <div className="flex-1"><Field label="Fine">
-              <input type="time" className={inputCls} value={form.endTime} onChange={(e) => setForm(f => ({ ...f, endTime: e.target.value }))} />
-            </Field></div>
-          </div>
-        )}
+        {/* Sheet ridotto per la modifica di un'attività (§3): niente orari,
+            categoria, luogo o opzioni avanzate — restano solo dell'evento. */}
+        {!isTodoEdit && (
+          <>
+            <div className="flex gap-3">
+              <div className="flex-1"><Field label="Inizio">
+                <input type="time" className={inputCls} value={form.startTime} onChange={(e) => setForm(f => ({ ...f, startTime: e.target.value }))} />
+              </Field></div>
+              <div className="flex-1"><Field label="Fine">
+                <input type="time" className={inputCls} value={form.endTime} onChange={(e) => setForm(f => ({ ...f, endTime: e.target.value }))} />
+              </Field></div>
+            </div>
 
-        <CategoryPicker value={form.category} onChange={(c) => setForm(f => ({ ...f, category: c }))} />
+            <CategoryPicker value={form.category} onChange={(c) => setForm(f => ({ ...f, category: c }))} />
 
-        <input className={inputCls} placeholder="Luogo" value={form.loc} onChange={(e) => setForm(f => ({ ...f, loc: e.target.value }))} />
+            <input className={inputCls} placeholder="Luogo" value={form.loc} onChange={(e) => setForm(f => ({ ...f, loc: e.target.value }))} />
 
-        <div className="border-t border-[var(--hairline)] pt-1">
-          <button type="button" onClick={() => setMoreOpen(o => !o)} className="w-full flex items-center justify-between px-1 py-2 text-left touch-target">
-            <span className="text-[13px] font-semibold text-[var(--text-2)] truncate pr-2">
-              {moreOpen ? "Meno opzioni" : advancedSummary(form) ? `Altre opzioni · ${advancedSummary(form)}` : "Altre opzioni (ripeti, promemoria, note)"}
-            </span>
-            <ChevronUpIcon className={`shrink-0 opacity-50 transition-transform duration-200 ${moreOpen ? "" : "rotate-180"}`} />
-          </button>
-          {moreOpen && (
-            <div className="space-y-3.5 pt-2.5">
-              {form.kind === "event" && (
-                <>
+            <div className="border-t border-[var(--hairline)] pt-1">
+              <button type="button" onClick={() => setMoreOpen(o => !o)} className="w-full flex items-center justify-between px-1 py-2 text-left touch-target">
+                <span className="text-[13px] font-semibold text-[var(--text-2)] truncate pr-2">
+                  {moreOpen ? "Meno opzioni" : advancedSummary(form) ? `Altre opzioni · ${advancedSummary(form)}` : "Altre opzioni (ripeti, promemoria, note)"}
+                </span>
+                <ChevronUpIcon className={`shrink-0 opacity-50 transition-transform duration-200 ${moreOpen ? "" : "rotate-180"}`} />
+              </button>
+              {moreOpen && (
+                <div className="space-y-3.5 pt-2.5">
                   <div>
                     <span className="block text-[12px] text-[var(--text-2)] mb-1.5 ml-1">Ripeti</span>
                     <div className="flex flex-wrap gap-2">
@@ -254,33 +233,25 @@ export default function EventSheet({
                       ))}
                     </div>
                   </div>
-                </>
+                  <textarea
+                    className={`${inputCls} resize-none`}
+                    placeholder="Descrizione" rows={3} value={form.desc}
+                    onChange={(e) => setForm(f => ({ ...f, desc: e.target.value }))}
+                  />
+                </div>
               )}
-              <textarea
-                className={`${inputCls} resize-none`}
-                placeholder="Descrizione" rows={3} value={form.desc}
-                onChange={(e) => setForm(f => ({ ...f, desc: e.target.value }))}
-              />
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         {mode === "create" || !onDelete ? (
           <button type="submit" className="w-full touch-target font-bold rounded-[var(--r-md)] py-4 active:scale-[0.98] text-[16px] text-white" style={{ background: "var(--flare)" }}>
-            {form.kind === "todo" ? "Aggiungi attività" : "Aggiungi evento"}
+            Aggiungi appuntamento
           </button>
-        ) : !confirmDelete ? (
-          <div className="flex gap-3">
-            <button type="button" onClick={() => setConfirmDelete(true)} className="flex-1 touch-target py-4 rounded-[var(--r-md)] font-bold text-[16px] active:scale-[0.98] bg-transparent border" style={{ color: "var(--alert)", borderColor: "var(--alert)" }}>Elimina</button>
-            <button type="submit" className="flex-[2] touch-target py-4 rounded-[var(--r-md)] font-bold text-[16px] active:scale-[0.98] text-white" style={{ background: "var(--flare)" }}>Salva</button>
-          </div>
         ) : (
-          <div className="space-y-2.5">
-            <p className="text-[13px] text-[var(--text-2)] text-center">Eliminare definitivamente?</p>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => setConfirmDelete(false)} className="flex-1 touch-target py-4 rounded-[var(--r-md)] font-bold text-[16px] active:scale-[0.98] bg-[var(--surface-1)] text-[var(--text-1)]">Annulla</button>
-              <button type="button" onClick={onDelete} className="flex-1 touch-target py-4 rounded-[var(--r-md)] font-bold text-[16px] active:scale-[0.98] bg-transparent border" style={{ color: "var(--alert)", borderColor: "var(--alert)" }}>Conferma</button>
-            </div>
+          <div className="flex gap-3">
+            <div className="flex-1"><HoldToConfirm label="Tieni per eliminare" doneLabel="Eliminato" onConfirm={onDelete} /></div>
+            <button type="submit" className="flex-[2] touch-target py-4 rounded-[var(--r-md)] font-bold text-[16px] active:scale-[0.98] text-white" style={{ background: "var(--flare)" }}>Salva</button>
           </div>
         )}
       </form>

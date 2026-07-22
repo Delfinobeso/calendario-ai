@@ -252,7 +252,25 @@ export const useCalendar = create<CalendarStore>((set, get) => {
     toggleTodoComplete: async (id) => {
       const cur = get().masters.find((e) => e.id === id);
       if (!cur) return;
-      await get().updateEvent(id, { completed: !cur.completed });
+      const willComplete = !cur.completed;
+      // Archivio nel giorno di completamento (feedback Aziz, §1): un'attività
+      // in rollover da un giorno passato, quando viene spuntata, si "sposta"
+      // a oggi (start_time/end_time) così resta salvata con la ✓ nel giorno
+      // in cui è stata fatta davvero. Se si de-spunta, resta dov'è — nessun
+      // ripristino della data originale.
+      if (willComplete) {
+        const today = new Date();
+        if (dateOnly(new Date(cur.start_time)) < dateOnly(today)) {
+          const todayStr = localISO(today).slice(0, 10);
+          await get().updateEvent(id, {
+            completed: true,
+            start_time: `${todayStr}T09:00:00`,
+            end_time: `${todayStr}T09:00:00`,
+          });
+          return;
+        }
+      }
+      await get().updateEvent(id, { completed: willComplete });
     },
 
     loadToday: async () => {

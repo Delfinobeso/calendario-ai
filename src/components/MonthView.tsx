@@ -26,12 +26,11 @@ function getDaysInMonth(year: number, month: number): Date[] {
 }
 
 export default function MonthView({
-  year, month, events, onMonthChange, onAddNew,
+  year, month, events, onMonthChange,
   onTapDay, onTapEvent,
 }: {
   year: number; month: number; events: CalendarEvent[];
   onMonthChange: (year: number, month: number) => void;
-  onAddNew: () => void;
   onTapDay: (d: Date) => void;
   onTapEvent: (ev: CalendarEvent) => void;
 }) {
@@ -51,9 +50,8 @@ export default function MonthView({
           {!isCurrentMonth && (
             <button onClick={() => onMonthChange(today.getFullYear(), today.getMonth())} className="touch-target text-[13px] font-semibold px-3 py-2 rounded-full" style={{ color: "var(--flare-hi)", background: "var(--flare-dim)" }}>Oggi</button>
           )}
-          <button onClick={onAddNew} aria-label="Nuovo" className="touch-target w-11 h-11 rounded-full flex items-center justify-center glass-1 active:scale-90">
-            <span className="text-[22px] leading-none font-medium" style={{ color: "var(--flare-hi)" }}>+</span>
-          </button>
+          {/* "+" rimosso (§2): l'unico ingresso per un nuovo appuntamento è
+              ora l'azione centrale del dock, identica su ogni tab. */}
         </div>
       </header>
 
