@@ -53,6 +53,10 @@ export function parseLocally(text: string): Omit<CalendarEvent, "id"> {
     hour = parseInt(timeMatch[1]);
     minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
   }
+  // Fallback locale (offline, senza backend): nessun orario esplicito nella
+  // frase → attività senza orario (kind:"todo"), coerente con la stessa
+  // regola del parser AI lato server (vedi PARSE_PROMPT in backend/main.py).
+  const kind: CalendarEvent["kind"] = timeMatch ? "event" : "todo";
 
   // Estrai giorno della settimana
   const dayMap = new Map<string, number>([
@@ -105,8 +109,9 @@ export function parseLocally(text: string): Omit<CalendarEvent, "id"> {
     location: "",
     description: "",
     category,
-    recurrence: inferRecurrence(lower) as CalendarEvent["recurrence"],
-    reminder_minutes: inferReminder(lower, category),
+    kind,
+    recurrence: kind === "todo" ? "" : (inferRecurrence(lower) as CalendarEvent["recurrence"]),
+    reminder_minutes: kind === "todo" ? 0 : inferReminder(lower, category),
     start_time: toLocalISO(start_time),
     end_time: toLocalISO(end_time),
     source: "ai",

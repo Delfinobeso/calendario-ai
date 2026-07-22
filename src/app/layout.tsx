@@ -34,6 +34,13 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        {/* Accent personalizzabile (stesso sistema di Kino/Budgy): hue letta prima
+            del paint da localStorage, niente flash del rosso di default. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var h=localStorage.getItem("cal:accent");if(h)document.documentElement.style.setProperty("--accent-h",h);}catch(e){}`,
+          }}
+        />
       </head>
       <body className="antialiased">
         <ThemeProvider>{children}</ThemeProvider>

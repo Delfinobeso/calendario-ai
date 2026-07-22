@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef } from "react";
-import { motion } from "framer-motion";
 import { CalendarEvent, isToday, isSameDay } from "@/store/calendar";
 import { getEventColor } from "@/lib/timeline";
+import { useHorizontalSwipe } from "@/lib/swipe";
 
 const MONTHS_IT = [
   "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
@@ -27,79 +26,87 @@ function getDaysInMonth(year: number, month: number): Date[] {
 }
 
 export default function MonthView({
-  year, month, events, direction,
-  onTapDay, onTapEvent, onSwipeDown, onSwipeUp,
+  year, month, events, onMonthChange, onAddNew,
+  onTapDay, onTapEvent,
 }: {
-  year: number; month: number; events: CalendarEvent[]; direction: number;
+  year: number; month: number; events: CalendarEvent[];
+  onMonthChange: (year: number, month: number) => void;
+  onAddNew: () => void;
   onTapDay: (d: Date) => void;
   onTapEvent: (ev: CalendarEvent) => void;
-  onSwipeDown: () => void; onSwipeUp: () => void;
 }) {
   const days = getDaysInMonth(year, month);
   const today = new Date();
   const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
 
-  const isZoom = direction === 0;
-  const variants = isZoom
-    ? { enter: { opacity: 0, scale: 0.95 }, center: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.05 } }
-    : { enter: (d: number) => ({ y: d > 0 ? "-50%" : "50%", opacity: 0 }), center: { y: 0, opacity: 1 }, exit: (d: number) => ({ y: d > 0 ? "50%" : "-50%", opacity: 0 }) };
-
-  const swiped = useRef(false);
-  const handlePanStart = () => { swiped.current = false; };
-  const handlePan = (_: unknown, info: { offset: { x: number; y: number } }) => {
-    if (swiped.current) return;
-    if (Math.abs(info.offset.y) > 80 && Math.abs(info.offset.y) > Math.abs(info.offset.x) * 3) {
-      swiped.current = true;
-      info.offset.y < 0 ? onSwipeUp() : onSwipeDown();
-    }
-  };
+  const goPrev = () => onMonthChange(month === 0 ? year - 1 : year, month === 0 ? 11 : month - 1);
+  const goNext = () => onMonthChange(month === 11 ? year + 1 : year, month === 11 ? 0 : month + 1);
+  const { dragX, dragging, handlers } = useHorizontalSwipe(goNext, goPrev);
 
   return (
-    <motion.div custom={direction} variants={variants} initial={false} animate="center" exit="exit"
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className="h-full flex flex-col overflow-hidden">
-      <div className="text-center py-2.5 shrink-0">
-        <p className="text-sm font-semibold text-[var(--color-text-secondary)]">{MONTHS_IT[month]} {year}</p>
-      </div>
-      <div className="grid grid-cols-7 px-2 pb-1.5 shrink-0">
+    <div className="h-full flex flex-col overflow-hidden enter-view">
+      <header className="shrink-0 flex items-center justify-between px-5 pt-1 pb-1.5">
+        <h1 className="text-[20px] font-extrabold text-[var(--text-1)] tracking-tight leading-tight capitalize">{MONTHS_IT[month]} {year}</h1>
+        <div className="flex items-center gap-2">
+          {!isCurrentMonth && (
+            <button onClick={() => onMonthChange(today.getFullYear(), today.getMonth())} className="touch-target text-[13px] font-semibold px-3 py-2 rounded-full" style={{ color: "var(--flare-hi)", background: "var(--flare-dim)" }}>Oggi</button>
+          )}
+          <button onClick={onAddNew} aria-label="Nuovo" className="touch-target w-11 h-11 rounded-full flex items-center justify-center glass-1 active:scale-90">
+            <span className="text-[22px] leading-none font-medium" style={{ color: "var(--flare-hi)" }}>+</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-7 px-3 pb-1.5 shrink-0">
         {DAY_HEADERS.map((h, i) => (
-          <div key={i} className={`text-center text-[10px] font-bold tracking-wider ${i >= 5 ? "text-[var(--color-text-tertiary)]/40" : "text-[var(--color-text-tertiary)]"}`}>
+          <div key={i} className="text-center text-[10px] font-bold tracking-wider" style={{ color: i >= 5 ? "var(--text-3)" : "var(--text-2)" }}>
             {h}
           </div>
         ))}
       </div>
 
-      <motion.div onPanStart={handlePanStart} onPan={handlePan}
-        className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-1 min-h-0 gpu-layer">
+      <div
+        className="flex-1 grid grid-cols-7 auto-rows-fr gap-px px-2 min-h-0 gpu-layer"
+        {...handlers}
+        style={{
+          paddingBottom: "170px",
+          transform: dragging ? `translateX(${dragX * 0.3}px)` : "translateX(0)",
+          transition: dragging ? "none" : "transform var(--dur-base) var(--ease-orbit)",
+        }}
+      >
         {days.map((date, idx) => {
           const dayEvents = events.filter((e) => isSameDay(new Date(e.start_time), date));
           const inMonth = date.getMonth() === month;
           const todayCheck = isToday(date);
           return (
             <button key={idx} onClick={() => inMonth && onTapDay(date)}
-              className={`flex flex-col items-center rounded-lg p-0.5 transition-colors active:bg-[var(--color-surface-secondary)] ${
-                !inMonth ? "opacity-30" : ""} ${
-                todayCheck && isCurrentMonth ? "bg-[var(--color-today)] ring-1 ring-[var(--color-accent)]/30" : ""}`}>
-              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-semibold ${
-                todayCheck && isCurrentMonth ? "bg-[var(--color-accent)] text-black today-pulse"
-                : inMonth ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"}`}>
+              className="flex flex-col items-center rounded-[10px] p-0.5 active:bg-[var(--surface-1)]"
+              style={{
+                opacity: inMonth ? 1 : 0.3,
+                background: todayCheck && isCurrentMonth ? "var(--flare-dim)" : "transparent",
+              }}>
+              <span
+                className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-semibold ${todayCheck && isCurrentMonth ? "today-pulse" : ""}`}
+                style={{
+                  background: todayCheck && isCurrentMonth ? "var(--flare)" : "transparent",
+                  color: todayCheck && isCurrentMonth ? "#fff" : inMonth ? "var(--text-1)" : "var(--text-3)",
+                }}>
                 {date.getDate()}
               </span>
-              {/* Event chips — tap opens detail (Google Calendar style) */}
               <div className="flex flex-col gap-0.5 mt-0.5 w-full px-0.5 min-h-0">
                 {dayEvents.slice(0, 3).map((ev, ei) => {
                   const c = getEventColor(ev);
                   return (
                     <button key={ev.id ?? ei}
                       onClick={(e) => { e.stopPropagation(); onTapEvent(ev); }}
-                      className="w-full rounded-[3px] px-1 py-px text-[10px] font-semibold leading-tight truncate text-left active:opacity-70 transition-opacity"
+                      className="w-full rounded-[3px] px-1 py-px text-[10px] font-semibold leading-tight truncate text-left active:opacity-70"
                       style={{ background: c + "26", color: c }}>
                       {ev.title}
                     </button>
                   );
                 })}
                 {dayEvents.length > 3 && (
-                  <span className="text-[9px] text-[var(--color-text-tertiary)] text-center font-medium">
+                  <span className="text-[9px] text-center font-medium" style={{ color: "var(--text-3)" }}>
                     +{dayEvents.length - 3}
                   </span>
                 )}
@@ -107,7 +114,7 @@ export default function MonthView({
             </button>
           );
         })}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

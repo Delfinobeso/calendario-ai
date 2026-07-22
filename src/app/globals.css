@@ -1,64 +1,122 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
 
-/* ── Palette ORBIT (vedi /DATA/orbit-design-system/spec.md) ──
-   Stessi nomi variabile del progetto, valori riallineati al design system
-   condiviso con Kino/Budgy/Accendi PC/F1-Dash. I colori per categoria evento
-   (src/lib/timeline.ts) restano invariati: sistema intenzionalmente multi-hue,
-   non fanno parte della disciplina "due accenti". */
+/* ── ORBIT v2 — design tokens condivisi ──
+   Vedi /DATA/orbit-design-system/spec.md. Famiglia Flare (rosso, hue default 27)
+   con --accent-h personalizzabile (localStorage "cal:accent", stesso pattern di
+   Kino/Budgy/Accendi PC). I colori categoria evento (src/lib/timeline.ts) restano
+   un sistema multi-hue a parte — eccezione legittima §1.5, non toccare. */
 
-/* ── Dark theme (default) ── */
 :root,
 [data-theme="dark"] {
-  --color-surface: oklch(0% 0 0);
-  --color-surface-secondary: oklch(12% 0.01 260);
-  --color-surface-tertiary: oklch(17% 0.012 260);
-  --color-accent: oklch(78% 0.15 210);
-  --color-text-primary: oklch(97% 0 0);
-  --color-text-secondary: oklch(74% 0.01 260);
-  --color-text-tertiary: oklch(54% 0.01 260);
-  --color-danger: oklch(70% 0.21 25);
-  --color-success: oklch(78% 0.17 145);
-  --color-today: oklch(78% 0.15 210 / 0.12);
-  --color-weekend: oklch(2% 0.005 260);
+  color-scheme: dark;
+
+  /* — superfici — */
+  --void: oklch(0% 0 0);
+  --surface-1: oklch(22% 0.01 260 / 0.55);
+  --surface-2: oklch(27% 0.012 260 / 0.65);
+  --surface-3: oklch(32% 0.014 260 / 0.75);
+  --hairline: oklch(100% 0 0 / 0.10);
+  --hairline-hi: oklch(100% 0 0 / 0.16);
+
+  /* — testo — */
+  --text-1: oklch(97% 0 0);
+  --text-2: oklch(74% 0.01 260);
+  --text-3: oklch(54% 0.01 260);
+
+  /* — famiglia Flare (accent, personalizzabile via --accent-h) — */
+  --flare: oklch(52% 0.2 var(--accent-h, 27));
+  --flare-hi: oklch(67% 0.21 var(--accent-h, 27));
+  --flare-dim: oklch(67% 0.21 var(--accent-h, 27) / 0.14);
+
+  /* — semantici di supporto (mai decorativi, mai legati all'accent utente) — */
+  --ember: oklch(76% 0.165 55);
+  --signal: oklch(78% 0.17 145);
+  --live: var(--flare);
+  --alert: var(--flare-hi);
+
+  /* — dock — */
+  --tab-pill: oklch(100% 0 0 / 0.12);
+
+  /* — safe area / viewport — */
   --sat: env(safe-area-inset-top, 0px);
   --sab: min(34px, env(safe-area-inset-bottom, 0px));
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
-  /* Real visible viewport height (shrinks when the iOS keyboard is open); kept in sync via ThemeProvider */
   --app-vh: 100vh;
 }
 
-/* ── Light theme ── */
 [data-theme="light"] {
-  --color-surface: oklch(97% 0.003 260);
-  --color-surface-secondary: oklch(95% 0.004 260);
-  --color-surface-tertiary: oklch(91% 0.004 260);
-  --color-accent: oklch(53% 0.16 220);
-  --color-text-primary: oklch(20% 0.01 260);
-  --color-text-secondary: oklch(42% 0.01 260);
-  --color-text-tertiary: oklch(58% 0.01 260);
-  --color-danger: oklch(47% 0.22 25);
-  --color-success: oklch(53% 0.16 150);
-  --color-today: oklch(53% 0.16 220 / 0.10);
-  --color-weekend: oklch(94% 0.004 260);
+  color-scheme: light;
+
+  --void: oklch(97% 0.003 260);
+  --surface-1: oklch(100% 0 0 / 0.65);
+  --surface-2: oklch(100% 0 0 / 0.78);
+  --surface-3: oklch(93% 0.004 260 / 0.9);
+  --hairline: oklch(0% 0 0 / 0.08);
+  --hairline-hi: oklch(100% 0 0 / 0.9);
+
+  --text-1: oklch(20% 0.01 260);
+  --text-2: oklch(42% 0.01 260);
+  --text-3: oklch(58% 0.01 260);
+
+  --flare: oklch(52% 0.2 var(--accent-h, 27));
+  --flare-hi: oklch(52% 0.19 var(--accent-h, 27));
+  --flare-dim: oklch(52% 0.19 var(--accent-h, 27) / 0.10);
+
+  --ember: oklch(58% 0.18 50);
+  --signal: oklch(56% 0.16 150);
+
+  --tab-pill: oklch(0% 0 0 / 0.08);
+}
+
+/* ── Spaziatura, raggi (§3) ── */
+:root {
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+
+  --r-sm: 14px;
+  --r-md: 20px;
+  --r-lg: 28px;
+  --r-xl: 36px;
+
+  /* ── Tipografia (§2) ── */
+  --t-caption: .75rem;    /* 12px */
+  --t-footnote: .8125rem; /* 13px */
+  --t-body: .9375rem;     /* 15px */
+  --t-headline: 1.0625rem;/* 17px */
+  --t-title-3: 1.25rem;
+  --t-title-2: 1.5rem;
+  --t-title-1: 1.75rem;
+  --t-hero: 2.75rem;
+
+  /* ── Motion (§5) ── */
+  --ease-orbit: cubic-bezier(.22,1,.36,1);
+  --ease-snap: cubic-bezier(.4,0,.2,1);
+  --ease-delight: cubic-bezier(.34,1.56,.64,1);
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 380ms;
+  --dur-delight: 480ms;
+  --dur-sheet-in: 420ms;
+  --dur-sheet-out: 260ms;
 }
 
 * {
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
+  box-sizing: border-box;
 }
 
 html {
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  background: var(--void);
+  color: var(--text-1);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
   overflow: hidden;
-  height: 100vh;
+  height: 100vh; /* MAI 100svh/100dvh su iOS PWA (§10) */
 }
 
 body {
@@ -68,10 +126,8 @@ body {
   overflow: hidden;
 }
 
-/* Hide scrollbars, keep 120Hz momentum */
 ::-webkit-scrollbar { width: 0; height: 0; }
 
-/* GPU layer helpers */
 .gpu-scroll {
   -webkit-overflow-scrolling: touch;
   overflow-scrolling: touch;
@@ -84,34 +140,81 @@ body {
   will-change: transform, opacity;
 }
 
-/* Safe area utilities */
-.pb-safe { padding-bottom: max(16px, var(--sab)); }
-
-/* iOS frosted glass */
-.sheet-blur {
+/* ── Elevazione — vetro reale (§4) ── */
+.glass-1 {
+  background: var(--surface-1);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--hairline);
+  border-top-color: var(--hairline-hi);
+}
+.glass-2 {
+  background: var(--surface-2);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--hairline-hi);
+}
+.sheet-backdrop-blur {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
 }
 
-/* Today indicator pulse */
-.today-pulse { animation: todayPulse 2s ease-in-out infinite; }
-@keyframes todayPulse {
+.pb-safe { padding-bottom: max(16px, var(--sab)); }
+.touch-target { min-height: 44px; min-width: 44px; }
+
+/* ── Focus-visible — quality gate §9, mai rimosso ── */
+:focus-visible { outline: 2px solid var(--flare-hi); outline-offset: 2px; }
+input:focus-visible, textarea:focus-visible { outline: none; } /* form: il vetro "si accende", §8.2 */
+
+/* ── Motion tokens come classi (§5) ── */
+@keyframes reveal-num {
+  from { opacity: 0; filter: blur(6px); transform: translateY(8px); }
+  to   { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+.reveal-num { animation: reveal-num var(--dur-slow) var(--ease-orbit) both; }
+
+@keyframes enter-view {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.enter-view { animation: enter-view var(--dur-slow) var(--ease-orbit) both; }
+
+@keyframes fade-only { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes shake-error {
+  0%, 100%, 70% { transform: translateX(0); }
+  10%, 30%, 50% { transform: translateX(-4px); }
+  20%, 40%, 60% { transform: translateX(4px); }
+}
+.shake { animation: shake-error 300ms ease-in-out; animation-iteration-count: 1; }
+
+@keyframes pulse-ring {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  50% { opacity: .55; }
+}
+.ring-pulse { animation: pulse-ring 2000ms ease-in-out infinite alternate; }
+
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.skeleton {
+  background-image: linear-gradient(90deg, var(--surface-1) 25%, var(--surface-3) 37%, var(--surface-1) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1400ms linear infinite;
 }
 
-/* Title validation shake */
-.shake { animation: shake 0.4s ease-in-out; }
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-6px); }
-  40%, 80% { transform: translateX(6px); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 900ms linear infinite; }
 
-/* Touch targets: minimum 44pt for iOS */
-.touch-target {
-  min-height: 44px;
-  min-width: 44px;
+/* Today "now" pulse (§7 style dot) */
+.today-pulse { animation: todayPulse 2s ease-in-out infinite; }
+@keyframes todayPulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+
+.selectable-text { -webkit-user-select: text; user-select: text; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-num, .enter-view { animation: fade-only var(--dur-base) linear both !important; }
+  .ring-pulse { animation: none !important; opacity: 1; }
+  .today-pulse { animation: none !important; opacity: 1; }
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
 }
 
 /* Native date/time inputs */
@@ -119,31 +222,13 @@ input[type="date"], input[type="time"] {
   color-scheme: light dark;
   -webkit-appearance: none;
   min-height: 44px;
-  color: var(--color-text-primary);
-  -webkit-text-fill-color: var(--color-text-primary);
+  color: var(--text-1);
+  -webkit-text-fill-color: var(--text-1);
 }
-[data-theme="light"] input[type="date"],
-[data-theme="light"] input[type="time"] {
-  color-scheme: light;
-}
-[data-theme="dark"] input[type="date"],
-[data-theme="dark"] input[type="time"] {
-  color-scheme: dark;
-}
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
-  opacity: 0.5;
-}
-[data-theme="dark"] input::-webkit-calendar-picker-indicator {
-  filter: invert(0.8);
-}
+[data-theme="light"] input[type="date"], [data-theme="light"] input[type="time"] { color-scheme: light; }
+[data-theme="dark"] input[type="date"], [data-theme="dark"] input[type="time"] { color-scheme: dark; }
+input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { opacity: 0.5; }
+[data-theme="dark"] input::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 
-/* Re-enable copy/select for event text despite the global user-select: none */
-.selectable-text {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-::placeholder { color: var(--color-text-tertiary); opacity: 0.6; }
-input:focus-visible { outline: none; }
-::selection { background: var(--color-accent); color: #0d0d0d; }
+::placeholder { color: var(--text-3); opacity: 0.7; }
+::selection { background: var(--flare-hi); color: var(--void); }
