@@ -18,7 +18,7 @@ const TABS: { key: MainView | "add"; label: string; icon: string }[] = [
 ];
 
 function Icon({ name }: { name: string }) {
-  const common = { width: 26, height: 26, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const common = { width: 28, height: 28, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2.2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   if (name === "agenda") return (
     <svg {...common}><path d="M4 6h16M4 12h16M4 18h10" /></svg>
   );
@@ -56,7 +56,7 @@ function Slot({ label, icon, active, tinted, onPress }: { label: string; icon: s
       {/* alone circolare App Store: Ø52, dietro icona+label, solo opacity in transizione */}
       <span
         aria-hidden
-        className="absolute left-1/2 top-1/2 h-[52px] w-[52px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        className="absolute left-1/2 top-1/2 h-[56px] w-[56px] -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           background: "var(--tab-pill)",
           opacity: active ? 1 : 0,
