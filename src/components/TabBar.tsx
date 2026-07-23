@@ -55,7 +55,7 @@ function Slot({ label, icon, active, tinted, onPress }: { label: string; icon: s
       {/* alone circolare App Store: Ø52, dietro icona+label, solo opacity in transizione */}
       <span
         aria-hidden
-        className="absolute left-1/2 top-1/2 h-[50px] w-[76px] max-w-[calc(100%-4px)] -translate-x-1/2 -translate-y-1/2 rounded-[25px]"
+        className="absolute left-1/2 top-1/2 h-[50px] w-[calc(100%-10px)] -translate-x-1/2 -translate-y-1/2 rounded-[25px]"
         style={{
           background: "var(--tab-pill)",
           opacity: active ? 1 : 0,
