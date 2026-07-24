@@ -1,7 +1,6 @@
 import { create } from "zustand";
 
 export type Recurrence = "" | "daily" | "weekly" | "monthly" | "yearly";
-export type EventKind = "event" | "todo";
 
 export interface CalendarEvent {
   id?: number;
@@ -16,8 +15,6 @@ export interface CalendarEvent {
   recurrence?: Recurrence;
   recurrence_until?: string | null;
   reminder_minutes?: number;
-  kind?: EventKind;       // "event" (default) | "todo" — attività senza orario, spuntabile
-  completed?: boolean;    // solo rilevante per kind: "todo"
   _unsynced?: boolean;   // client-only: created/updated offline, awaiting push
   master_id?: number;    // client-only: set on generated recurrence occurrences
   _occurrence?: boolean; // client-only: this is a generated occurrence, not a stored row
@@ -37,7 +34,6 @@ interface CalendarStore {
   addEvent: (event: Omit<CalendarEvent, "id">) => Promise<CalendarEvent>;
   removeEvent: (id: number) => Promise<void>;
   updateEvent: (id: number, event: Partial<CalendarEvent>) => Promise<void>;
-  toggleTodoComplete: (id: number) => Promise<void>;
   loadToday: () => Promise<void>;
 }
 
@@ -249,30 +245,6 @@ export const useCalendar = create<CalendarStore>((set, get) => {
       } catch { /* keep optimistic + queued */ }
     },
 
-    toggleTodoComplete: async (id) => {
-      const cur = get().masters.find((e) => e.id === id);
-      if (!cur) return;
-      const willComplete = !cur.completed;
-      // Archivio nel giorno di completamento (feedback Aziz, §1): un'attività
-      // in rollover da un giorno passato, quando viene spuntata, si "sposta"
-      // a oggi (start_time/end_time) così resta salvata con la ✓ nel giorno
-      // in cui è stata fatta davvero. Se si de-spunta, resta dov'è — nessun
-      // ripristino della data originale.
-      if (willComplete) {
-        const today = new Date();
-        if (dateOnly(new Date(cur.start_time)) < dateOnly(today)) {
-          const todayStr = localISO(today).slice(0, 10);
-          await get().updateEvent(id, {
-            completed: true,
-            start_time: `${todayStr}T09:00:00`,
-            end_time: `${todayStr}T09:00:00`,
-          });
-          return;
-        }
-      }
-      await get().updateEvent(id, { completed: willComplete });
-    },
-
     loadToday: async () => {
       if (!API_BASE) return;
       try {
@@ -315,31 +287,4 @@ export function formatTime(iso: string): string {
 
 export function getEventsForDay(events: CalendarEvent[], date: Date): CalendarEvent[] {
   return events.filter((e) => isSameDay(new Date(e.start_time), date));
-}
-
-function dateOnly(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-/**
- * Rollover CLIENT-SIDE (mai riscritto sul server): attività (kind:"todo") non
- * completate la cui data è oggi o precedente. Confluiscono nella sezione
- * "Da fare" della vista Agenda indipendentemente dal giorno che l'utente sta
- * guardando — la data reale del server non cambia mai.
- */
-export function getRolloverTodos(events: CalendarEvent[], today: Date): CalendarEvent[] {
-  const todayOnly = dateOnly(today);
-  return events
-    .filter((e) => e.kind === "todo" && !e.completed && dateOnly(new Date(e.start_time)) <= todayOnly)
-    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-}
-
-/** Eventi/attività di un giorno FUTURO rispetto a oggi, escludendo le attività
- * già coperte dal rollover (che vivono solo nella sezione "Da fare"). */
-export function getDayItemsExcludingRollover(events: CalendarEvent[], date: Date, today: Date): CalendarEvent[] {
-  const dayEvents = getEventsForDay(events, date);
-  if (dateOnly(date) <= dateOnly(today)) {
-    return dayEvents.filter((e) => e.kind !== "todo");
-  }
-  return dayEvents;
 }

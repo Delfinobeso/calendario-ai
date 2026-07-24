@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useUI } from "@/store/ui";
-import type { ParsedEvent } from "@/components/AIAssembleSheet";
+import { useCalendar } from "@/store/calendar";
 
 // Kept alive for the whole session: on iOS, stopping all tracks of a getUserMedia
 // stream makes the next getUserMedia() call re-show the permission prompt, even
@@ -20,14 +20,11 @@ async function getMicStream(): Promise<MediaStream> {
 interface Props {
   onDone: () => void;
   active: boolean;
-  /** Dettatura trascritta+interpretata dal backend: stesso trattamento del testo
-   * digitato nella AI bar (§11.7 assemble-in + sheet di conferma), MAI un
-   * addEvent diretto — la conferma è sempre nel mezzo. */
-  onParsed: (parsed: ParsedEvent, conflicts: { title: string }[]) => void;
 }
 
-export default function VoiceInput({ onDone, active, onParsed }: Props) {
+export default function VoiceInput({ onDone, active }: Props) {
   const { setAiResult } = useUI();
+  const { addEvent } = useCalendar();
 
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -82,20 +79,34 @@ export default function VoiceInput({ onDone, active, onParsed }: Props) {
             const data = await res.json();
             if (data.error) {
               setAiResult({ kind: "error", text: data.error });
-              setTimeout(() => setAiResult(null), 3000);
             } else {
-              onParsed(data.event, data.conflicts || []);
+              const parsed = data.event;
+              await addEvent({
+                title: parsed.title,
+                location: parsed.location || "",
+                description: parsed.description || "",
+                start_time: parsed.start_time,
+                end_time: parsed.end_time,
+                source: "ai",
+              });
+              const conflicts = data.conflicts || [];
+              if (conflicts.length) {
+                setAiResult({
+                  kind: "warning",
+                  text: `Conflitto con: ${conflicts.map((c: any) => c.title).join(", ")}. Aggiunto comunque.`,
+                });
+              } else {
+                setAiResult({ kind: "success", text: `"${parsed.title}" aggiunto` });
+              }
             }
           } else {
             setAiResult({ kind: "error", text: "Errore nella trascrizione." });
-            setTimeout(() => setAiResult(null), 3000);
           }
         } catch {
           setAiResult({ kind: "error", text: "Timeout o errore di rete." });
-          setTimeout(() => setAiResult(null), 3000);
         }
         setProcessing(false);
-        onDone();
+        setTimeout(() => { setAiResult(null); onDone(); }, 4000);
       };
 
       recorder.start(250);
@@ -107,7 +118,7 @@ export default function VoiceInput({ onDone, active, onParsed }: Props) {
       setAiResult({ kind: "error", text: "Microfono non disponibile." });
       setTimeout(() => { setAiResult(null); onDone(); }, 3000);
     }
-  }, [setAiResult, onDone, onParsed]);
+  }, [addEvent, setAiResult, onDone]);
 
   // Respond to parent toggle (active prop)
   const prevActiveRef = useRef<boolean | undefined>(undefined);
@@ -129,8 +140,8 @@ export default function VoiceInput({ onDone, active, onParsed }: Props) {
   if (processing) {
     return (
       <div className="flex-1 flex items-center gap-2 min-w-0">
-        <div className="w-3.5 h-3.5 rounded-full border-2 spin shrink-0" style={{ borderColor: "var(--flare-hi)", borderTopColor: "transparent" }} />
-        <span className="text-[var(--text-2)] text-[14px]">Trascrivendo…</span>
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-[var(--color-accent)] border-t-transparent animate-spin shrink-0" />
+        <span className="text-[var(--color-text-secondary)] text-[14px]">Trascrivendo...</span>
       </div>
     );
   }
@@ -140,8 +151,8 @@ export default function VoiceInput({ onDone, active, onParsed }: Props) {
 
   return (
     <div className="flex-1 flex items-center gap-2 min-w-0">
-      <span className="block w-2 h-2 rounded-full shrink-0 ring-pulse" style={{ background: "var(--alert)" }} />
-      <span className="text-[var(--text-1)] text-[14px] font-medium tabular-nums">REC {mm}:{ss}</span>
+      <span className="block w-2 h-2 rounded-full bg-red-400 animate-pulse shrink-0" />
+      <span className="text-[var(--color-text-primary)] text-[14px] font-medium tabular-nums">REC {mm}:{ss}</span>
     </div>
   );
 }
