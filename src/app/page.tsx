@@ -327,7 +327,7 @@ export default function Home() {
     const text = aiInput.trim(); if (!text) return;
     setAiLoading(true); setAiResult(null);
     try {
-      const API = process.env.NEXT_PUBLIC_API_URL;
+      const API = process.env.NEXT_PUBLIC_API_URL ? "/api/backend" : "";
       let parsed: any = null;
       let conflictMsg: string | null = null;
       if (API) {

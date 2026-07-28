@@ -40,7 +40,8 @@ export const FONT_GOOGLE: Record<Font, string | null> = {
   system: null,
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+// See calendar.ts for why this doesn't hit NEXT_PUBLIC_API_URL directly.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ? "/api/backend" : "";
 
 export const useSettings = create<SettingsStore>()(
   persist(

@@ -67,7 +67,7 @@ export default function VoiceInput({ onDone, active }: Props) {
 
         setProcessing(true);
         try {
-          const API = process.env.NEXT_PUBLIC_API_URL;
+          const API = process.env.NEXT_PUBLIC_API_URL ? "/api/backend" : "";
           const formData = new FormData();
           formData.append("file", blob, "recording.webm");
           const res = await fetch(`${API}/ai/parse-audio`, {

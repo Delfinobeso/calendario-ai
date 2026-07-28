@@ -37,7 +37,10 @@ interface CalendarStore {
   loadToday: () => Promise<void>;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+// The public env var only flags "a backend is configured" — actual calls go
+// through the same-origin proxy (/api/backend/*) which attaches the server-only
+// API key. Never fetch NEXT_PUBLIC_API_URL directly from client code.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ? "/api/backend" : "";
 const CACHE_KEY = "calendario-events-cache";
 
 // ── Recurrence expansion ──────────────────────────────────────────────────

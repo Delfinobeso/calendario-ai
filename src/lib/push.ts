@@ -1,5 +1,6 @@
 // Web push subscription helpers (VAPID).
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+// See calendar.ts for why this doesn't hit NEXT_PUBLIC_API_URL directly.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ? "/api/backend" : "";
 
 export function pushSupported(): boolean {
   return typeof window !== "undefined" &&
